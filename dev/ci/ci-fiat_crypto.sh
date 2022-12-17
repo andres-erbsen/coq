@@ -16,9 +16,12 @@ if [ "$DOWNLOAD_ONLY" ]; then exit 0; fi
 stacksize=32768
 
 # fiat-crypto is not guaranteed to build with the latest version of
-# bedrock2, so we use the pinned version of bedrock2, but the external
-# version of other developments
-make_args=(EXTERNAL_REWRITER=1 EXTERNAL_COQPRIME=1)
+# bedrock2, so we use the pinned version of bedrock2.
+# fiat-crypto only depends on a small subset of coqprime, and does not depend
+# on bignums, so overall build latency is reduced by duplicating coqprime.
+# fiat-crypto has been tracking rewriter closely, either the submodule or
+# upstream master can be used here.
+make_args=(EXTERNAL_REWRITER=1)
 
 ( cd "${CI_BUILD_DIR}/fiat_crypto"
   ulimit -s $stacksize

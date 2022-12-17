@@ -99,7 +99,7 @@ ci-corn: ci-math_classes
 
 ci-mtac2: ci-unicoq
 
-ci-fiat_crypto: ci-coqprime ci-rewriter
+ci-fiat_crypto: ci-rewriter
 ci-fiat_crypto_ocaml: ci-fiat_crypto
 
 ci-fourcolor: ci-mathcomp

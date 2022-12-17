@@ -646,8 +646,6 @@ library:ci-fiat_crypto:
     COQEXTRAFLAGS: "-async-proofs-tac-j 0"
   needs:
   - build:edge+flambda
-  - library:ci-coqprime
-  - plugin:ci-bignums
   - plugin:ci-rewriter
   timeout: 3h
 
