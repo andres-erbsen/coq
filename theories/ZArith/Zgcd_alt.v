@@ -8,6 +8,8 @@
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
 
+(** This library has been deprecated since Coq version 8.18. *)
+
 (** * Zgcd_alt : an alternate version of Z.gcd, based on Euclid's algorithm *)
 
 (**

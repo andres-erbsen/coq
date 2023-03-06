@@ -10,6 +10,8 @@
 (*          Pierre Letouzey, Jerome Vouillon, PPS, Paris 7, 2008        *)
 (************************************************************************)
 
+(** This library has been deprecated since Coq version 8.18. *)
+
 Local Open Scope type_scope.
 
 Require Import List.
