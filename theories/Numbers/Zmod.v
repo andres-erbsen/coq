@@ -697,8 +697,6 @@ Proof.
     auto using coprime_invmod, to_Zmod_range. lia.
 Qed.
 
-Definition div {m} (x y : Zstar m) : Zstar m := mul x (inv y).
-
 Lemma to_Zmod_div {m} x y : to_Zmod (@div m x y) = Zmod.mdiv x y.
 Proof. cbv [div]. rewrite to_Zmod_mul, to_Zmod_inv, mul_inv_r; trivial. Qed.
 
@@ -788,6 +786,45 @@ Proof.
   repeat rewrite ?mul_assoc, ?(mul_comm _ x); trivial.
 Qed.
 
+(** [pow_Z] *)
+
+Lemma pow_Z_0_r {m} x : @pow_Z m x 0 = one.
+Proof. reflexivity. Qed.
+
+Lemma pow_Z_1_l {m} z : @pow_Z m one z = one.
+Proof.
+  cbv [pow_Z]; case (Z.ltb_spec z 0) as [];
+    rewrite ?pow_N_1_l, ?inv_1; trivial.
+Qed.
+
+Lemma pow_Z_N_r {m} a (n : N) : @pow_Z m a n = pow_N a n.
+Proof. case n; trivial. Qed.
+
+Lemma to_Z_pow_Z_nonneg {m} x z (Hz : 0 <= z) : @to_Z m (pow_Z x z) = x^z mod m.
+Proof.
+  cbv [pow_Z]; case (Z.ltb_spec z 0) as []; try lia.
+  rewrite to_Zmod_pow_N, Zmod.to_Z_pow_N; f_equal; f_equal; lia.
+Qed.
+
+Lemma pow_Z_opp_r {m} a (z : Z) : @pow_Z m a (-z) = inv (pow_Z a z).
+Proof.
+  cbv [pow_Z]; case (Z.ltb_spec (-z) 0), (Z.ltb_spec z 0);
+    try (replace z with 0%Z by lia); cbn;
+    rewrite ?inv_inv, ?inv_1, ?Zabs2N.inj_opp; trivial.
+Qed.
+
+Lemma to_Z_pow_Z_neg {m} x z (Hz : z <= 0) :
+  @to_Z m (pow_Z x z) = invmod (to_Z x^(-z)) m mod m.
+Proof.
+  replace z with (--z) at 1 by lia; rewrite pow_Z_opp_r by trivial.
+  pose proof to_Zmod_range (pow_Z x (-z)).
+  rewrite to_Zmod_inv, to_Z_inv, to_Z_pow_Z_nonneg in * by lia.
+  rewrite invmod_mod_l; try lia.
+  rewrite ?Z.gcd_mod, ?(Z.gcd_comm m) in *; trivial; subst; try lia.
+Qed.
+
+(* [elements] *)
+
 Lemma in_elements m (x : Zstar m) : List.In x (elements m).
 Proof.
   eapply List.in_map_iff, (ex_intro _ (to_Zmod x)), conj, List.filter_In, conj,
@@ -849,3 +886,157 @@ Qed.
 
 End Zstar.
 End Base.
+
+Module Export Inv.
+Module Zmod.
+Import Znumtheory Zmod.
+
+Lemma div_same {m} (a : Zmod m) : mdiv a a = of_Z m (Z.gcd a m).
+Proof.
+  rewrite <-mul_inv_l. apply to_Z_inj. rewrite to_Z_mul, to_Z_inv,
+    Z.mul_mod_idemp_l, to_Z_of_Z, invmod_ok by inversion 1; trivial.
+Qed.
+
+Lemma in_invertibles m (x : Zmod m) : List.In x (invertibles m) <-> Z.gcd x m = 1.
+Proof.
+  pose @in_elements; cbv [invertibles]; rewrite filter_In; intuition trivial; lia.
+Qed.
+
+Lemma NoDup_invertibles {m} : List.NoDup (invertibles m).
+Proof. apply NoDup_filter, NoDup_elements. Qed.
+
+Lemma div_same_coprime {m} (a : Zmod m) (H : Z.gcd a m = 1) : mdiv a a = one.
+Proof. rewrite div_same, H; trivial. Qed.
+
+Lemma div_same_prime {m} (x : Zmod m) (Hm : prime m) (H : x <> zero) : mdiv x x = one.
+Proof.
+  apply to_Z_inj. apply to_Z_nz in H. pose proof to_Z_range x.
+  rewrite <-mul_inv_l, to_Z_mul, to_Z_inv, Z.mul_mod_idemp_l, to_Z_1,
+    invmod_prime; trivial; rewrite ?Z.mod_small; try lia.
+Qed.
+
+Lemma mul_inv_same_l_coprime {m} (x : Zmod m) (H : Z.gcd x m = 1) :
+  mul (inv x) x = one.
+Proof.
+  pose proof Zstar.mul_inv_same_l (Zstar.of_Zmod x) as E.
+  apply (f_equal Zstar.to_Zmod) in E.
+  rewrite Zstar.to_Zmod_mul, Zstar.to_Zmod_inv, Zstar.to_Zmod_of_Zmod, Zstar.to_Zmod_1 in E by trivial; exact E.
+Qed.
+
+Lemma mul_inv_same_r_coprime {m} (x : Zmod m) (H : Z.gcd x m = 1) :
+  mul x (inv x) = one.
+Proof. rewrite mul_comm, mul_inv_same_l_coprime; trivial. Qed.
+
+Lemma mul_inv_same_l_prime {m} (x : Zmod m) (Hm : prime m) (H : x <> zero) :
+  mul (inv x) x = one.
+Proof. intros; rewrite ?mul_inv_l, ?div_same_prime; trivial. Qed.
+
+Lemma mul_inv_same_r_prime {m} (x : Zmod m) (Hm : prime m) (H : x <> zero) :
+  mul x (inv x) = one.
+Proof. rewrite mul_comm, mul_inv_same_l_prime; trivial. Qed.
+
+Lemma field_theory (m : positive) (Hm : prime m) :
+  @Field_theory.field_theory (Zmod m) zero one add mul sub opp mdiv inv eq.
+Proof.
+  split; auto using ring_theory, one_neq_zero, prime_ge_2, mul_inv_r, mul_inv_same_l_prime.
+Qed.
+
+Lemma inv_nz_prime {m} (x : Zmod m) (Hm : prime m) (Hx : x <> zero) : inv x <> zero.
+Proof.
+  intro HX; exfalso; apply (@one_neq_zero m); auto using prime_ge_2.
+  pose proof mul_inv_same_l_prime x Hm Hx as H; rewrite HX, mul_0_l in H; auto.
+Qed.
+
+Lemma inv_inv {m} (x : Zmod m) (H : Z.gcd x m = 1): inv (inv x) = x.
+Proof.
+  pose proof Zstar.inv_inv (Zstar.of_Zmod x) as E.
+  apply (f_equal Zstar.to_Zmod) in E.
+  rewrite 2Zstar.to_Zmod_inv, Zstar.to_Zmod_of_Zmod in E by trivial; exact E.
+Qed.
+
+Lemma inv_inv_prime {m} (x : Zmod m) (Hm : prime m): inv (inv x) = x.
+Proof.
+  case (eqb_spec x zero) as [|Hx]; subst.
+  { apply to_Z_inj. rewrite to_Z_inv, invmod_0_l; trivial. }
+  pose proof to_Z_nz x ltac:(trivial); pose proof to_Z_range x.
+  apply inv_inv, Zgcd_1_rel_prime, rel_prime_le_prime; trivial; lia.
+Qed.
+
+Lemma inv_1 {m} : @inv m one = one.
+Proof.
+  case (Pos.eq_dec m 1); intros; subst; trivial.
+  symmetry; rewrite <-mul_1_l, mul_inv_r, div_same_coprime; trivial.
+  rewrite to_Z_1, Z.gcd_1_l; lia.
+Qed.
+
+Lemma mul_cancel_l_coprime {m} (a b c : Zmod m)
+  (Ha : Z.gcd a m = 1) (H : mul a b = mul a c) : b = c.
+Proof.
+  apply wlog_eq_Zmod_2; intros. apply (f_equal (fun x => mul (inv a) x)) in H.
+  rewrite !mul_assoc, !mul_inv_same_l_coprime, !mul_1_l in H; trivial.
+Qed.
+
+Lemma mul_cancel_r_coprime {m} (a b c : Zmod m)
+  (Ha : Z.gcd a m = 1) (H : mul b a = mul c a) : b = c.
+Proof. rewrite 2(mul_comm _ a) in H; apply mul_cancel_l_coprime in H; trivial. Qed.
+
+Lemma mul_cancel_l_prime {m} (a b c : Zmod m) (Hm : prime m) (Ha : a <> zero)
+  (H : mul a b = mul a c) : b = c.
+Proof.
+  apply (f_equal (fun x => mul (inv a) x)) in H.
+  rewrite !mul_assoc, !mul_inv_same_l_prime, !mul_1_l in H; trivial.
+Qed.
+
+Lemma mul_cancel_r_prime {m} (a b c : Zmod m) (Hm : prime m) (Ha : a <> zero)
+  (H : mul b a = mul c a) : b = c.
+Proof. rewrite 2(mul_comm _ a) in H; apply mul_cancel_l_prime in H; trivial. Qed.
+
+Theorem fermat_nz {m} (a : Zmod m) (Ha : a <> zero) (H : prime m) :
+  pow_N a (Pos.pred_N m) = one.
+Proof.
+  rewrite <-to_Z_inj_iff, to_Z_0 in Ha; pose proof to_Z_range a as Ha'.
+  pose proof Zstar.fermat (Zstar.of_Zmod a) H as G%(f_equal Zstar.to_Zmod).
+  rewrite Zstar.to_Zmod_pow_N, Zstar.to_Zmod_of_Zmod, Zstar.to_Zmod_1 in G; trivial.
+  apply Zgcd_1_rel_prime, rel_prime_le_prime; trivial; lia.
+Qed.
+
+Theorem fermat {m} (a : Zmod m) (H : prime m) : pow_N a m = a.
+Proof.
+  case (eqb_spec a zero); intros.
+  { subst a. rewrite pow_N_0_l; trivial; lia. }
+  { replace (N.pos m) with (N.succ (Pos.pred_N m)) by lia.
+    rewrite pow_N_succ_r, fermat_nz, mul_1_r; trivial. }
+Qed.
+
+Theorem fermat_inv {m} (a : Zmod m) (Ha : a <> zero) (H : prime m) :
+  pow_N a (N.pred (Pos.pred_N m)) = inv a.
+Proof.
+  eapply mul_cancel_l_prime; try eassumption.
+  rewrite <-pow_N_succ_r, N.succ_pred, fermat_nz, mul_inv_same_r_prime;
+    trivial; pose proof prime_ge_2 m H; lia.
+Qed.
+
+End Zmod.
+
+Module Z.
+Import Znumtheory.
+
+Theorem fermat_nz (m a : Z) (Hm : prime m) (Ha : a mod m <> 0) :
+  a^(m-1) mod m = 1.
+Proof.
+  pose proof prime_ge_2 _ Hm; case m as [|m|]; try lia; [].
+  replace (Z.pos m - 1) with (Z.of_N (Pos.pred_N m)) by lia.
+  rewrite <-Zmod.to_Z_of_Z, Zmod.of_Z_pow, N2Z.id,Zmod.fermat_nz;
+    auto using Zmod.to_Z_1, Zmod.of_Z_nz with zarith.
+Qed.
+
+Theorem fermat (m a : Z) (Hm : prime m) : a^m mod m = a mod m.
+Proof.
+  pose proof prime_ge_2 _ Hm; case m as [|m|]; try lia; [].
+  rewrite <-2Zmod.to_Z_of_Z.
+  erewrite <-(Zmod.fermat (Zmod.of_Z m a) Hm).
+  rewrite Zmod.of_Z_pow; trivial; lia.
+Qed.
+End Z.
+
+End Inv.
