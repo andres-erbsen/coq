@@ -9,6 +9,8 @@
 (************************************************************************)
 
 Require Import PeanoNat.
+Local Set Universe Polymorphism.
+Local Set Printing Universes.
 
 Set Implicit Arguments.
 (* Set Universe Polymorphism. *)
@@ -36,7 +38,8 @@ Import ListNotations.
 
 Section Lists.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   (** Head and tail *)
 
@@ -69,7 +72,8 @@ End Lists.
 
 Section Facts.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   (** *** Generic facts *)
 
@@ -384,7 +388,8 @@ Local Ltac Tauto.intuition_solver ::= auto with datatypes.
 
 Section Elts.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   (*****************************)
   (** ** Nth element of a list *)
@@ -926,7 +931,8 @@ End Elts.
 
 Section ListOps.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   (*************************)
   (** ** Reverse           *)
@@ -1111,7 +1117,8 @@ End ListOps.
 (************)
 
 Section Map.
-  Variables (A : Type) (B : Type).
+  Universes u v.
+  Variables (A : Type@{u}) (B : Type@{v}).
   Variable f : A -> B.
 
   Fixpoint map (l:list A) : list B :=
@@ -1233,7 +1240,8 @@ End Map.
 (*****************)
 
 Section FlatMap.
-  Variables (A : Type) (B : Type).
+  Universe u v.
+  Variables (A : Type@{u}) (B : Type@{v}).
   Variable f : A -> list B.
 
     (** [flat_map] *)
@@ -1348,7 +1356,8 @@ Qed.
 (************************************)
 
 Section Fold_Left_Recursor.
-  Variables (A : Type) (B : Type).
+  Universes u v.
+  Variables (A : Type@{u}) (B : Type@{v}).
   Variable f : A -> B -> A.
 
   Fixpoint fold_left (l:list B) (a0:A) : A :=
@@ -1377,7 +1386,8 @@ Qed.
 (************************************)
 
 Section Fold_Right_Recursor.
-  Variables (A : Type) (B : Type).
+  Universes u v.
+  Variables (A : Type@{u}) (B : Type@{v}).
   Variable f : B -> A -> A.
   Variable a0 : A.
 
@@ -1644,7 +1654,8 @@ End Fold_Right_Recursor.
   (*******************************)
 
   Section Filtering.
-    Variables (A : Type).
+    Universe u.
+    Variables (A : Type@{u}).
 
     Lemma filter_ext_in : forall (f g : A -> bool) (l : list A),
       (forall a, In a l -> f a = g a) -> filter f l = filter g l.
@@ -1743,7 +1754,8 @@ End Fold_Right_Recursor.
   (******************************************************)
 
   Section ListPairs.
-    Variables (A : Type) (B : Type).
+    Universes u v.
+    Variables (A : Type@{u}) (B : Type@{v}).
 
   (** [split] derives two lists from a list of pairs *)
 
@@ -1925,7 +1937,8 @@ End Fold_Right_Recursor.
 (******************************)
 
 Section length_order.
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   Definition lel (l m:list A) := length l <= length m.
 
@@ -1977,7 +1990,8 @@ Hint Resolve lel_refl lel_cons_cons lel_cons lel_nil lel_nil nil_cons:
 
 Section SetIncl.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   Definition incl (l m:list A) := forall a:A, In a l -> In a m.
   #[local]
@@ -2103,7 +2117,8 @@ Hint Resolve incl_refl incl_tl incl_tran incl_appl incl_appr incl_cons
 
 Section Cutting.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   Fixpoint firstn (n:nat)(l:list A) : list A :=
     match n with
@@ -2309,7 +2324,8 @@ Section Cutting.
 End Cutting.
 
 Section CuttingMap.
-  Variables A B : Type.
+  Universes u v.
+  Variables (A : Type@{u}) (B : Type@{v}).
   Variable f : A -> B.
 
   Lemma firstn_map : forall n l,
@@ -2330,7 +2346,8 @@ End CuttingMap.
 (**************************************************************)
 
 Section Combining.
-    Variables (A B : Type).
+    Universes u v.
+    Variables (A : Type@{u}) (B : Type@{v}).
 
     Lemma combine_nil : forall (l : list A),
       combine l (@nil B) = @nil (A*B).
@@ -2381,7 +2398,8 @@ End Combining.
 
 Section Add.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   (* [Add a l l'] means that [l'] is exactly [l], with [a] added
      once somewhere *)
@@ -2437,7 +2455,8 @@ End Add.
 
 Section ReDun.
 
-  Variable A : Type.
+  Universe u.
+  Variable A : Type@{u}.
 
   Inductive NoDup : list A -> Prop :=
     | NoDup_nil : NoDup nil
@@ -2702,10 +2721,20 @@ End ReDun.
 (** NB: the reciprocal result holds only for injective functions,
     see FinFun.v *)
 
-Lemma NoDup_map_inv A B (f:A->B) l : NoDup (map f l) -> NoDup l.
+Lemma NoDup_map_inv@{u v} (A : Type@{u}) (B : Type@{v}) (f:A->B) l : NoDup (map f l) -> NoDup l.
 Proof.
  induction l; simpl; inversion_clear 1; subst; constructor; auto.
- intro H. now apply (in_map f) in H.
+ intro H.
+ Check in_map f.
+ (* in_map@{u v} f
+     : forall (l : list@{u} A) (x : A),
+       In@{u} x l -> In@{v} (f x) (map@{u v} f l)
+  *)
+ pose proof H as H'. (* in@{u} a l *)
+ apply (in_map f) in H.
+ (* H : In@{Coq.Lists.List.10712} (f a) (map@{u Coq.Lists.List.10712} f l) *)
+ Fail contradiction. (* No such contradiction *)
+ apply (in_map@{u v} f) in H'; contradiction.
 Qed.
 
 (***********************************)

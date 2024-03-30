@@ -287,8 +287,8 @@ Defined.
 
 (** Polymorphic lists and some operations *)
 
-#[universes(template)]
-Inductive list (A : Type) : Type :=
+#[universes(polymorphic)]
+Inductive list@{u} (A : Type@{u}) : Type@{u} :=
  | nil : list A
  | cons : A -> list A -> list A.
 
@@ -307,7 +307,8 @@ Register cons as core.list.cons.
 
 Local Open Scope list_scope.
 
-Definition length (A : Type) : list A -> nat :=
+#[universes(polymorphic)]
+Definition length@{u} (A : Type@{u}) : list A -> nat :=
   fix length l :=
   match l with
    | nil => O
@@ -316,7 +317,8 @@ Definition length (A : Type) : list A -> nat :=
 
 (** Concatenation of two lists *)
 
-Definition app (A : Type) : list A -> list A -> list A :=
+#[universes(polymorphic)]
+Definition app@{u} (A : Type@{u}) : list A -> list A -> list A :=
   fix app l m :=
   match l with
    | nil => m
