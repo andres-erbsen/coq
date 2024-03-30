@@ -217,11 +217,12 @@ Register inr as core.sum.inr.
 (** [prod A B], written [A * B], is the product of [A] and [B];
     the pair [pair A B a b] of [a] and [b] is abbreviated [(a,b)] *)
 
+Local Set Primitive Projections.
 #[universes(template)]
-Inductive prod (A B:Type) : Type :=
-  pair : A -> B -> A * B
-
-where "x * y" := (prod x y) : type_scope.
+Record prod (A B:Type) : Type :=
+  pair { fst : A ;  snd : B }.
+Local Unset Primitive Projections.
+Notation "x * y" := (prod x y) : type_scope.
 
 Add Printing Let prod.
 
@@ -229,15 +230,20 @@ Notation "( x , y , .. , z )" := (pair .. (pair x y) .. z) : core_scope.
 
 Arguments pair {A B} _ _.
 
+Definition prod_rect [A B : Type] (P : A * B -> Type)
+  (f : forall (a : A) (b : B), P (a, b)) (p : A * B) : P p :=
+  let (a, b) := p in f a b.
+Definition prod_rec [A B : Type] (P : A * B -> Set) :=
+  prod_rect P.
+Definition prod_ind [A B : Type] (P : A * B -> Prop) :=
+  prod_rect P.
+
 Register prod as core.prod.type.
 Register pair as core.prod.intro.
 Register prod_rect as core.prod.rect.
 
 Section projections.
   Context {A : Type} {B : Type}.
-
-  Definition fst (p:A * B) := match p with (x, y) => x end.
-  Definition snd (p:A * B) := match p with (x, y) => y end.
 
   Register fst as core.prod.proj1.
   Register snd as core.prod.proj2.

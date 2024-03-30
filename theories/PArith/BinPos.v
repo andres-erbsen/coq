@@ -1910,7 +1910,7 @@ Lemma ggcd_greatest : forall a b,
  let (aa,bb) := snd (ggcd a b) in
  forall p, (p|aa) -> (p|bb) -> p=1.
 Proof.
- intros a b **. generalize (gcd_greatest a b) (ggcd_correct_divisors a b).
+ intros a b. generalize (gcd_greatest a b) (ggcd_correct_divisors a b).
  rewrite <- ggcd_gcd. destruct ggcd as (g,(aa,bb)); simpl.
  intros H (EQa,EQb) p Hp1 Hp2; subst.
  assert (H' : (g*p | g)). {

@@ -1775,22 +1775,18 @@ End Fold_Right_Recursor.
       intro l; induction l as [|a l IHl].
       - intros n d; destruct n; destruct d; simpl; auto.
       - intros n d; destruct n; destruct d; simpl; auto.
-        + destruct a; destruct (split l); simpl; auto.
-        + destruct a; destruct (split l); simpl in *; auto.
     Qed.
 
     Lemma length_fst_split : forall (l:list (A*B)),
       length (fst (split l)) = length l.
     Proof.
       intro l; induction l as [|a l IHl]; simpl; auto.
-      destruct a; destruct (split l); simpl; auto.
     Qed.
 
     Lemma length_snd_split : forall (l:list (A*B)),
       length (snd (split l)) = length l.
     Proof.
       intro l; induction l as [|a l IHl]; simpl; auto.
-      destruct a; destruct (split l); simpl; auto.
     Qed.
 
   (** [combine] is the opposite of [split].

@@ -255,13 +255,48 @@ Qed.
 Lemma byte_of_ascii_of_byte x : byte_of_ascii (ascii_of_byte x) = x.
 Proof.
   cbv [ascii_of_byte byte_of_ascii].
+  Set Printing Implicit.
   repeat match goal with
-         | [ |- context[match ?x with pair _ _ => _ end] ]
-           => rewrite (surjective_pairing x)
-         | [ |- context[(fst ?x, snd ?x)] ]
-           => rewrite <- (surjective_pairing x)
+         | [ |- context[(fst ?x, snd ?x)] ] =>
+             rewrite <-(surjective_pairing x) || idtac x
          end.
-  rewrite of_bits_to_bits; reflexivity.
+
+(* Goal:
+of_bits
+  (@fst _ _ (to_bits x),
+   (@fst _ _ (@snd _ _ (to_bits x)),
+    (@fst _ _ (@snd _ _ (@snd _ _ (to_bits x))),
+     (@fst _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x)))),
+      (@fst _ _ (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x))))),
+       (@fst _ _
+          (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x)))))),
+
+        (@fst _ _
+           (@snd _ _
+              (@snd _ _
+                 (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x))))))),
+         @snd _ _
+           (@snd _ _
+              (@snd _ _
+                 (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x))))))))
+   )))))) =
+x
+ *)
+
+  Fail rewrite <-(surjective_pairing (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x)))))))).
+  (*
+Found no subterm matching "
+        (@fst _ _
+          (@snd _ _
+             (@snd _ _
+                (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x))))))),
+         @snd _ _
+           (@snd _ _
+              (@snd _ _
+                 (@snd _ _ (@snd _ _ (@snd _ _ (@snd _ _ (to_bits x))))))))
+     " in the current goal.
+   *)
+  rewrite <-of_bits_to_bits; reflexivity.
 Qed.
 
 Lemma ascii_of_byte_via_N x : ascii_of_byte x = ascii_of_N (Byte.to_N x).
