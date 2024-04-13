@@ -37,7 +37,7 @@ Definition signed {m} (x : Zmod m) : Z :=
 
 Notation zero := (Private_of_N_value _ 0 I).
 
-Notation one := (of_Z _ 1).
+Definition one {m} := of_Z m 1.
 
 (** Ring operations *)
 
@@ -146,19 +146,20 @@ Example positives_2 : positives 2 = []. Proof. trivial. Qed.
 Example negatives_2 : negatives 2 = [one]. Proof. trivial. Qed.
 Example invertibles_2 : invertibles 2 = [one]. Proof. trivial. Qed.
 
-Example elements_3 : elements 3 = [zero; one; of_Z _ 2]. Proof. trivial. Qed.
+Example elements_3 : elements 3 = [zero; one; opp one]. Proof. trivial. Qed.
 Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
 Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
 Example invertibles_3 : invertibles 3 = [one; opp one]. Proof. trivial. Qed.
+
+Definition find {m} f := find f (elements m). (* TODO: lazy iteration *)
 
 End Zmod.
 
 Notation Zmod := Zmod.Zmod.
 
-
-Local Coercion Zmod.to_Z : Zmod >-> Z.
-
 Module Zstar.
+Import Zmod.
+Local Coercion to_Z : Zmod >-> Z.
 
 Record Zstar (m : positive) := Private_of_N_value {
   Private_to_N : N ;
@@ -182,15 +183,17 @@ Defined.
 Definition of_Zmod {m} (x : Zmod m) : Zstar m.
   refine (of_coprime_Zmod (if Z.eqb (Z.gcd x m) 1 then x else Zmod.one) (fun _ => _)).
   abstract (destruct (Z.eqb_spec (Z.gcd x m) 1); trivial; 
-    cbv [Zmod.to_Z Zmod.Private_to_N Zmod.of_Z Zmod.of_small_Z];
+    cbv [Zmod.to_Z Zmod.Private_to_N Zmod.of_Z Zmod.of_small_Z Zmod.one];
     rewrite Z2N.id, Z.gcd_mod, Z.gcd_1_r; Z.div_mod_to_equations; lia).
 Defined.
+
+Definition eqb {m} (x y : Zstar m) := Zmod.eqb x y.
 
 Definition one {m} : Zstar m := of_Zmod Zmod.one.
 
 Definition opp {m} (x : Zstar m) : Zstar m := of_Zmod (Zmod.opp x).
 
-Definition abs {m} (x : Zmod m) : Zmod m := of_Zmod (Zmod.abs x).
+Definition abs {m} (x : Zstar m) : Zstar m := of_Zmod (Zmod.abs x).
 
 Definition mul {m} (a b : Zstar m) : Zstar m.
   refine (of_coprime_Zmod (Zmod.mul a b) _)%positive.
@@ -224,6 +227,18 @@ Definition positives m :=
 
 Definition negatives m :=
   map of_Zmod (filter (fun x : Zmod m => Z.gcd x m =? 1) (Zmod.negatives m)).
+
+Example elements_1 : elements 1 = [of_Zmod Zmod.zero]. Proof. trivial. Qed.
+Example positives_1 : positives 1 = []. Proof. trivial. Qed.
+Example negatives_1 : negatives 1 = []. Proof. trivial. Qed.
+
+Example elements_2 : elements 2 = [one]. Proof. trivial. Qed.
+Example positives_2 : positives 2 = []. Proof. trivial. Qed.
+Example negatives_2 : negatives 2 = [one]. Proof. trivial. Qed.
+
+Example elements_3 : elements 3 = [one; opp one]. Proof. trivial. Qed.
+Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
+Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
 End Zstar.
 
 Notation Zstar := Zstar.Zstar.

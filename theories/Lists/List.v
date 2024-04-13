@@ -3594,6 +3594,10 @@ Proof.
   - cbn. f_equal. exact IHn.
 Qed.
 
+Lemma map_const (A B : Type) (b : B) (l : list A) :
+  map (fun _ => b) l = repeat b (length l).
+Proof. induction l; cbn [repeat map length]; congruence. Qed.
+
 Lemma rev_repeat A n (a:A):
   rev (repeat a n) = repeat a n.
 Proof.

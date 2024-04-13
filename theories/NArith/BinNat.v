@@ -814,6 +814,9 @@ Proof.
  reflexivity.
 Qed.
 
+Lemma pos_div2 p : p <> xH -> N.pos (Pos.div2 p) = N.div2 (N.pos p).
+Proof. destruct p; trivial. intros []; trivial. Qed.
+
 (** Semantics of bitwise operations *)
 
 Lemma pos_lxor_spec p p' n :
