@@ -729,6 +729,7 @@ Proof.
   now intros (Hp,_); apply (Zlt_le_succ 1).
 Qed.
 
+
 Definition prime' p := 1<p /\ (forall n, 1<n<p -> ~ (n|p)).
 
 Lemma Z_0_1_more x : 0<=x -> x=0 \/ x=1 \/ 1<x.
@@ -795,6 +796,16 @@ Proof.
     + contradict H; auto; apply not_prime_1.
     + contradict Hp; apply Zle_not_lt, (Z.opp_le_mono _ 0).
       now rewrite Z.opp_involutive; apply Z.lt_le_incl.
+Qed.
+
+Lemma odd_prime (p : Z) : prime p -> 3 <= p -> p mod 2 = 1.
+Proof.
+  case (Z.mod_pos_bound p 2 eq_refl) as [[]%Zle_lt_or_eq ?]; trivial.
+  { intros _ _; eapply Z.le_antisymm;
+    solve [ eapply Z.lt_pred_le + eapply Zlt_succ_le; trivial ]. }
+  intros [? A]%prime_alt  B.
+  case (A 2). { split. exact eq_refl. eapply Z.le_succ_l; trivial. }
+  apply Z.mod_divide. inversion 1. congruence.
 Qed.
 
 Notation Zgcd_is_pos := Z.gcd_nonneg (only parsing).
@@ -1006,7 +1017,11 @@ Lemma invmod_coprime' a m (Hm : m <> 0) (H : Z.gcd a m = 1) : invmod a m * a mod
 Proof. rewrite invmod_ok, H; trivial. Qed.
 
 Lemma invmod_coprime a m (Hm : 2 <= m) (H : Z.gcd a m = 1) : invmod a m * a mod m = 1.
-Proof. rewrite invmod_coprime', Z.mod_1_l; trivial. Admitted.
+Proof.
+  rewrite invmod_coprime', Z.mod_1_l; trivial (*; lia*).
+  - eapply Z.le_succ_l; trivial.
+  - inversion 1; subst; contradiction.
+Qed.
 
 Lemma invmod_prime a m (Hm : prime m) (H : a mod m <> 0) : invmod a m * a mod m = 1.
 Proof.

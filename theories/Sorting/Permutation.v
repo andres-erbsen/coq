@@ -697,7 +697,7 @@ End Permutation_map.
 Lemma Permutation_map_same_l {A} (f : A -> A) (l : list A) :
   List.NoDup (List.map f l) -> List.incl (List.map f l) l -> Permutation (List.map f l) l.
 Proof.
-  intros; eapply Permutation.NoDup_Permutation_bis; rewrite ?List.map_length; trivial.
+  intros; eapply Permutation.NoDup_Permutation_bis; rewrite ?List.length_map; trivial.
 Qed.
 
 Lemma nat_bijection_Permutation n f :
