@@ -700,6 +700,31 @@ Proof.
   eapply Forall_forall in H; eauto. inversion_clear H; eauto.
 Qed.
 
+Lemma N_factor_ind (P : N -> Prop)
+  (zero : P N0)
+  (init : P (N.pos 1))
+  (step : forall n p, P n -> prime p ->
+    (forall q, prime q -> Z.divide q n -> q <= p) -> P (n * p)%N)
+  : forall n, P n.
+Proof.
+  unshelve epose proof factor_ind (fun p => P p) _ _; cbv beta; eauto.
+  { intros. rewrite N.pos_mul; eauto. }
+  destruct n; eauto.
+Qed.
+
+Lemma Z_factor_ind (P : Z -> Prop)
+  (zero : P Z0)
+  (init : P (Z.pos 1))
+  (step : forall n p, P n -> prime p ->
+    (forall q, prime q -> Z.divide q n -> q <= p) -> P (n * p)%Z)
+  (opp : forall n : positive, P n -> P (Z.neg n))
+  : forall n, P n.
+Proof.
+  unshelve epose proof factor_ind (fun p => P p) _ _; cbv beta; eauto.
+  { intros. rewrite Pos2Z.inj_mul; eauto. }
+  destruct n; eauto.
+Qed.
+
 Lemma ppfactor_ind (P : positive -> Prop)
   (init : P 1)
   (step : forall n p k, P n -> prime p -> Z.gcd n p = xH ->
@@ -731,6 +756,7 @@ Proof.
     eapply Forall_forall in H1; eauto; inversion H1; trivial. }
 Qed.
 
+
 Lemma in_ppfactor p k n : In (p, k) (ppfactor n) <-> (prime p /\ val p n = k).
 Proof.
   rewrite <-(prod_ppfactor n) at 2.
@@ -739,7 +765,8 @@ Proof.
   epose proof val_0_iff_divide p (Π (map (uncurry Pos.pow) l)) _.
   split; [intros []|intros ?]; subst; cbn [uncurry].
   { rewrite val_mul_pow by admit.
-    rewrite (proj2 H); try lia.
+    rewrite (proj2 H); try split; try lia.
+    eapply IHl.
     epose proof prime_divisor_of_prime_power_product p l _ _.
     all : admit. }
   admit.
