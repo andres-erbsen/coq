@@ -75,8 +75,8 @@ Definition mdiv {m} (x y : Zmod m) : Zmod m := mul x (inv y).
 
 Definition pow_N {m} (a : Zmod m) n := N.iter_op mul one a n.
 
-Definition pow_Z {m} (a : Zmod m) z :=
-  if Z.ltb z 0 then inv (pow_N a (Z.abs_N z)) else pow_N a (Z.abs_N z).
+Definition pow {m} (a : Zmod m) z :=
+  if Z.ltb z 0 then inv (pow_N a (Z.to_N (Z.opp z))) else pow_N a (Z.to_N z).
 
 (** Bitwise operations *)
 Import Nbitwise.
@@ -101,23 +101,14 @@ Definition abs {m} (x : Zmod m) : Zmod m := if signed x <? 0 then opp x else x.
 
 (** Shifts *)
 
-Definition slu_N {m} (x : Zmod m) (n : N) := of_Z m (Z.shiftl x n).
+Definition slu {m} (x : Zmod m) (n : N) := of_Z m (Z.shiftl x n).
 
-Definition sru_N {m} (x : Zmod m) (n : N) : Zmod m.
+Definition sru {m} (x : Zmod m) (n : N) : Zmod m.
   refine (of_small_Z m (N.shiftr (Z.to_N x) n) (fun _ => _)).
   abstract (pose (to_Z_range x); pose (N.shiftr_mono (Z.to_N x) n); lia).
 Defined.
 
-Definition srs_N {m} x (n : N) := of_Z m (Z.shiftr (@signed m x) n).
-
-(** Shifts by [Zmod] are defined without truncation. This is appropriate for
- * some use cases and not for others. Truncating wrappers can be defined
- * similarly when sufficient; undefined behavior is out of scope here. *)
-
-Definition slu {m} (x y : Zmod m) := @slu_N m x (Z.to_N y).
-Notation shiftl := slu.
-Definition sru {m} (x y : Zmod m) := @sru_N m x (Z.to_N y).
-Definition srs {m} (x y : Zmod m) := @srs_N m x (Z.to_N y).
+Definition srs {m} x (n : N) := of_Z m (Z.shiftr (@signed m x) n).
 
 (** Enumerating elements *)
 
@@ -214,8 +205,8 @@ Definition div {m} (x y : Zstar m) : Zstar m := mul x (inv y).
 
 Definition pow_N {m} (a : Zstar m) n := N.iter_op mul one a n.
 
-Definition pow_Z {m} (a : Zstar m) z :=
-  if Z.ltb z 0 then inv (pow_N a (Z.abs_N z)) else pow_N a (Z.abs_N z).
+Definition pow {m} (a : Zstar m) z :=
+  if Z.ltb z 0 then inv (pow_N a (Z.to_N (Z.opp z))) else pow_N a (Z.to_N z).
 
 (** Enumerating elements *)
 
