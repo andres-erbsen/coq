@@ -1013,6 +1013,8 @@ Proof.
   erewrite <-Z.mod_add, H; trivial.
 Qed.
 
+Lemma mod_invmod m a : invmod a m mod m = invmod a m. Proof. apply Zmod_mod. Qed.
+
 Lemma invmod_coprime' a m (Hm : m <> 0) (H : Z.gcd a m = 1) : invmod a m * a mod m = 1 mod m.
 Proof. rewrite invmod_ok, H; trivial. Qed.
 
