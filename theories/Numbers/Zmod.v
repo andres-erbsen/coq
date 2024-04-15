@@ -681,10 +681,6 @@ Proof. cbv [positives]. rewrite length_map, length_seq; trivial. Qed.
 Lemma length_negatives m : length (negatives m) = Z.to_nat (m/2).
 Proof. cbv [negatives]. rewrite length_map, length_seq; trivial. Qed.
 
-Lemma nth_error_rev [A] n (l : list A) :
-  nth_error (rev l) n = if Nat.ltb n (length l) then nth_error l (length l - S n) else None.
-Admitted.
-
 Lemma negatives_as_positives_odd (m : positive) (Hm : m mod 2 = 1) :
   negatives m = map opp (rev (positives m)).
 Proof.
