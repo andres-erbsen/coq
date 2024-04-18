@@ -94,6 +94,13 @@ Ltac destruct_all t :=
 Tactic Notation "rewrite_all" constr(eq) := repeat rewrite eq in *.
 Tactic Notation "rewrite_all" "<-" constr(eq) := repeat rewrite <- eq in *.
 
+(** Useful combinators *)
+
+Ltac assert_fails tac :=
+  tryif (once tac) then gfail 0 tac "succeeds" else idtac.
+Tactic Notation "assert_fails" tactic3(tac) :=
+  assert_fails tac.
+
 (** Tactics for applying equivalences.
 
 The following code provides tactics "apply -> t", "apply <- t",
@@ -140,17 +147,25 @@ let H := fresh in
   pose proof lemma as H;
   find_equiv H; [todo H; clear H | .. ].
 
-Tactic Notation "apply" "->" open_constr(lemma) :=
-bapply lemma ltac:(fun H => destruct H as [H _]; apply H).
+Tactic Notation "apply" "->" uconstr(lemma) :=
+  let c := open_constr:(lemma) in
+  bapply c ltac:(fun H => destruct H as [H _]; apply H);
+  assert_fails (has_evar c).
 
-Tactic Notation "apply" "<-" open_constr(lemma) :=
-bapply lemma ltac:(fun H => destruct H as [_ H]; apply H).
+Tactic Notation "apply" "<-" uconstr(lemma) :=
+  let c := open_constr:(lemma) in
+  bapply c ltac:(fun H => destruct H as [_ H]; apply H);
+  assert_fails (has_evar c).
 
-Tactic Notation "apply" "->" open_constr(lemma) "in" hyp(J) :=
-bapply lemma ltac:(fun H => destruct H as [H _]; apply H in J).
+Tactic Notation "apply" "->" uconstr(lemma) "in" hyp(J) :=
+  let c := open_constr:(lemma) in
+  bapply c ltac:(fun H => destruct H as [H _]; apply H in J);
+  assert_fails (has_evar c).
 
-Tactic Notation "apply" "<-" open_constr(lemma) "in" hyp(J) :=
-bapply lemma ltac:(fun H => destruct H as [_ H]; apply H in J).
+Tactic Notation "apply" "<-" uconstr(lemma) "in" hyp(J) :=
+  let c := open_constr:(lemma) in
+  bapply c ltac:(fun H => destruct H as [_ H]; apply H in J);
+  assert_fails (has_evar c).
 
 (** An experimental tactic simpler than auto that is useful for ending
     proofs "in one step" *)
@@ -328,13 +343,6 @@ Ltac time_constr tac :=
   let ret := tac () in
   let eval_early := match goal with _ => finish_timing ( "Tactic evaluation" ) end in
   ret.
-
-(** Useful combinators *)
-
-Ltac assert_fails tac :=
-  tryif (once tac) then gfail 0 tac "succeeds" else idtac.
-Tactic Notation "assert_fails" tactic3(tac) :=
-  assert_fails tac.
 
 Create HintDb rewrite discriminated.
 #[global]
