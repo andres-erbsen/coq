@@ -48,4 +48,3 @@
   :g:`pow_lower_bound`
   (`#18628 <https://github.com/coq/coq/pull/18628>`_,
   by Pierre Rousselin).
-
