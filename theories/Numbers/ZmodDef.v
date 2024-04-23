@@ -142,8 +142,6 @@ Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
 Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
 Example invertibles_3 : invertibles 3 = [one; opp one]. Proof. trivial. Qed.
 
-Definition find {m} f := find f (elements m). (* TODO: lazy iteration *)
-
 End Zmod.
 
 Notation Zmod := Zmod.Zmod.

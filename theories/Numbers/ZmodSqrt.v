@@ -525,7 +525,7 @@ Lemma nonsquare_correct {p : positive} (Hp : prime p) (Hp' : 3 <= p) :
   nonsquare p ^ ((p-1)/2) = opp one.
 Proof.
   cbv [nonsquare].
-  case find eqn:H.
+  case ZmodSqrtDef.Zmod.find eqn:H.
   { apply find_some in H; rewrite eqb_eq in H; intuition idtac. }
   exfalso.
   pose proof find_none _ _ H as H'; cbv beta in *; clear H; rename H' into H.
