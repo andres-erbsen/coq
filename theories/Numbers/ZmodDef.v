@@ -8,8 +8,9 @@ Local Coercion Z.of_N : N >-> Z.
 
 Module Zmod.
 
+#[projections(primitive)]
 Record Zmod (m : positive) := Private_of_N_value {
-  Private_to_N : N ; _ : Bool.Is_true (Private_to_N <? N.pos m)%N }.
+  Private_to_N : N ; Private_range : Bool.Is_true (Private_to_N <? N.pos m)%N }.
 Arguments Private_to_N {m}.
 
 Definition to_Z {m} (x : Zmod m) := Z.of_N (Private_to_N x).
@@ -73,10 +74,9 @@ Definition mdiv {m} (x y : Zmod m) : Zmod m := mul x (inv y).
 
 (**  Powers  *)
 
-Definition pow_N {m} (a : Zmod m) n := N.iter_op mul one a n.
-
+Local Definition Private_pow_N {m} (a : Zmod m) n := N.iter_op mul one a n.
 Definition pow {m} (a : Zmod m) z :=
-  if Z.ltb z 0 then inv (pow_N a (Z.to_N (Z.opp z))) else pow_N a (Z.to_N z).
+  if Z.ltb z 0 then inv (Private_pow_N a (Z.to_N (Z.opp z))) else Private_pow_N a (Z.to_N z).
 
 (** Bitwise operations *)
 Import Nbitwise.
@@ -152,9 +152,10 @@ Module Zstar.
 Import Zmod.
 Local Coercion to_Z : Zmod >-> Z.
 
+#[projections(primitive)]
 Record Zstar (m : positive) := Private_of_N_value {
   Private_to_N : N ;
-  _ : Is_true ((Private_to_N <? m)%N && (Z.gcd Private_to_N m =? 1)) }.
+  Private_range : Is_true ((Private_to_N <? m)%N && (Z.gcd Private_to_N m =? 1)) }.
 Arguments Private_to_N {m}.
 
 Definition to_Zmod {m : positive} (a : Zstar m) : Zmod m.
@@ -190,7 +191,7 @@ Definition mul {m} (a b : Zstar m) : Zstar m.
   refine (of_coprime_Zmod (Zmod.mul a b) _)%positive.
   abstract (cbv [Zmod.to_Z Zmod.mul Zmod.of_Z Zmod.of_small_Z]; cbn;
     rewrite !Z2N.id; try (Z.div_mod_to_equations; lia);
-    rewrite Z.gcd_mod, Z.gcd_comm, Z.coprime_mul; trivial;
+    rewrite Z.gcd_mod, Z.gcd_comm, Z.coprime_mul_l; trivial;
     case a as [a Ha]; cbn; apply Is_true_eq_true in Ha;
     case b as [b Hb]; cbn; apply Is_true_eq_true in Hb; lia).
 Defined.
@@ -203,10 +204,7 @@ Definition div {m} (x y : Zstar m) : Zstar m := mul x (inv y).
 
 (**  Powers  *)
 
-Definition pow_N {m} (a : Zstar m) n := N.iter_op mul one a n.
-
-Definition pow {m} (a : Zstar m) z :=
-  if Z.ltb z 0 then inv (pow_N a (Z.to_N (Z.opp z))) else pow_N a (Z.to_N z).
+Definition pow {m} (a : Zstar m) z := of_Zmod (Zmod.pow a z).
 
 (** Enumerating elements *)
 

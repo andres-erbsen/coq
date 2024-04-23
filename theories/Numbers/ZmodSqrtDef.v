@@ -14,7 +14,7 @@ Import ZmodDef.Zmod.
 Section WithAB.
 Context {m} (phi_m : positive) (a b : Zmod m).
 Local Infix "*" := mul.
-Local Infix "^" := pow_N.
+Local Infix "^" := pow.
 Fixpoint chase_sqrt (apow : positive) (bpow : N) :=
   match apow with
   | xO apow => if Zmod.eqb (a^apow * b^N.div2 bpow) one
@@ -29,14 +29,14 @@ Definition sqrtp' {p : positive} (a b : Zmod p) :=
   @chase_sqrt p (Pos.pred p) a b (Pos.div2 (Pos.pred p)) 0.
 
 Definition nonsquare (p : positive) : Zmod p :=
-  match find (fun b => eqb (pow_N b ((p-1)/2)) (opp (@one p))) with
+  match find (fun b => eqb (pow b ((p-1)/2)) (opp (@one p))) with
   | Some b => b
   | None => one
   end.
 
 Definition sqrtp {p} (a : Zmod p) :=
-  if eqb (pow_N a ((p-1)/2)) one
-  then abs (sqrtp' a (nonsquare p)) else zero.
+  let x := sqrtp' a (nonsquare p) in
+  if eqb (pow x 2) a then abs x else zero.
 
 End Zmod.
 Notation Zmod := Zmod.Zmod.
@@ -108,13 +108,14 @@ Definition sqrtpp {q} (a : Zstar q) : Zstar q :=
 End Zstar.
 
 Module Z.
-  Definition sqrtmod a m : Z :=
+  Definition sqrtmod' a m : Z :=
     let pps := ppfactor m in
     let epps := map (uncurry Pos.pow) pps in
     let rs := map (fun '(p, k) => sqrtpp p k a) pps in
-    if forallb (fun '(r, pp) => r^2 mod Z.pos pp =? a mod pp) (combine rs epps) then
-      fst (fold_right (fun '(x1, m1) '(x2, m2) =>
-        (Znumtheory.combinecong (Z.pos m1) (Z.pos m2) x1 x2, Pos.mul m1 m2)) (0, xH)
-        (combine rs epps))
-    else 0.
+    fst (fold_right (fun '(x1, m1) '(x2, m2) =>
+          (Znumtheory.combinecong (Z.pos m1) (Z.pos m2) x1 x2, Pos.mul m1 m2)) (0, xH)
+          (combine rs epps)).
+  Definition sqrtmod a m :=
+    let r := sqrtmod' a m in 
+    if r * r mod m =? a then r else 0.
 End Z.
