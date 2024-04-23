@@ -11,6 +11,10 @@ Local Coercion Z.of_N : N >-> Z.
 Module Zmod.
 Import ZmodDef.Zmod.
 
+(* NOTE: this definition is intended to be replacable with one that does not compute [elements m] *)
+(* TODO: move to Zmod *)
+Local Definition find {m} f := find f (elements m).
+
 Section WithAB.
 Context {m} (phi_m : positive) (a b : Zmod m).
 Local Infix "*" := mul.
