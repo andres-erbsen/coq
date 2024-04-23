@@ -515,6 +515,9 @@ Proof.
   red; apply Zis_gcd_sym; auto with zarith.
 Qed.
 
+#[global] Instance symmetric_rel_prime : RelationClasses.Symmetric rel_prime.
+Proof. intros ? ?. apply rel_prime_sym. Qed.
+
 Theorem rel_prime_div: forall p q r,
  rel_prime p q -> (r | p) -> rel_prime r q.
 Proof.
@@ -998,10 +1001,10 @@ Lemma cong_mul_cancel_r_coprime a b m (Hm : m <> 0) (Hb : Z.gcd b m = 1)
 Proof.
   apply Zmod_divide in H; trivial; [].
   rewrite Z.mul_comm in H; apply Gauss, Zdivide_mod in H; trivial.
-  apply rel_prime_sym, Zgcd_1_rel_prime; trivial.
+  symmetry; apply Zgcd_1_rel_prime; trivial.
 Qed.
 
-Definition invmod a m := fst (fst (extgcd a m)) mod m.
+Definition invmod a m := fst (fst (extgcd (a mod m) m)) mod m.
 
 Lemma invmod_0_l m : invmod 0 m = 0. Proof. reflexivity. Qed.
 
@@ -1009,8 +1012,8 @@ Lemma invmod_ok a m (Hm : m <> 0) : invmod a m * a mod m = Z.gcd a m mod m.
 Proof.
   cbv [invmod]; destruct extgcd as [[u v]g] eqn:H.
   eapply extgcd_correct in H; case H as [[]]; subst; cbn [fst snd].
-  rewrite Z.mul_mod_idemp_l by trivial.
-  erewrite <-Z.mod_add, H; trivial.
+  rewrite Z.gcd_mod, Z.gcd_comm in H by trivial; rewrite <-H.
+  erewrite Z.mod_add, Z.mul_mod_idemp_l, Z.mul_mod_idemp_r; trivial.
 Qed.
 
 Lemma mod_invmod m a : invmod a m mod m = invmod a m. Proof. apply Zmod_mod. Qed.
@@ -1032,20 +1035,20 @@ Proof.
   apply invmod_coprime, Zgcd_1_rel_prime, rel_prime_sym, prime_rel_prime; auto.
 Qed.
 
-Lemma invmod_mod_l a m (Hm : m <> 0) (Ha : Z.gcd a m = 1) : invmod (a mod m) m = invmod a m.
+Lemma invmod_1_l' m (H : m <> 0) : invmod 1 m = 1 mod m.
 Proof.
-  cbv [invmod].
-  destruct extgcd as ([]&?) eqn:HA; apply extgcd_correct in HA.
-  destruct extgcd as ([]&?) eqn:HB in |- *; apply extgcd_correct in HB.
-  intuition idtac; cbn [fst snd]. eassert (_ = Z.gcd (a mod m) m) as E by eauto.
-  rewrite ?Z.gcd_mod, ?(Z.gcd_comm _ a) in *; trivial; subst.
-  rewrite <-H2 in E; clear H2.
-  apply (f_equal (fun x => x mod m)) in E. rewrite !Z.mod_add in E by trivial.
-  rewrite Z.mul_mod_idemp_r in E (* by lia *) by (intro; subst m; auto using not_prime_0).
-  apply cong_iff_0 in E; apply cong_iff_0.
-  rewrite <-Z.mul_sub_distr_r in E.
-  eapply cong_mul_cancel_r_coprime in E; trivial.
+  pose proof invmod_coprime' 1 m H ltac:(rewrite Z.gcd_1_l; trivial).
+  rewrite Z.mul_1_r, mod_invmod in *; trivial.
 Qed.
+
+Lemma invmod_1_l m (H : 2 <= m) : invmod 1 m = 1.
+Proof.
+  pose proof invmod_coprime 1 m H ltac:(rewrite Z.gcd_1_l; trivial).
+  rewrite Z.mul_1_r, mod_invmod in *; trivial.
+Qed.
+
+Lemma invmod_mod_l a m (Hm : m <> 0) : invmod (a mod m) m = invmod a m.
+Proof. cbv [invmod]. rewrite Zmod_mod; trivial. Qed.
 
 Lemma coprime_invmod a m (H : Z.gcd a m = 1) : Z.gcd (Znumtheory.invmod a m) m = 1.
 Proof.
@@ -1054,10 +1057,11 @@ Proof.
   { subst m. rewrite Z.gcd_0_r in H. case a in *; trivial. }
   rewrite Z.gcd_mod by trivial.
   destruct extgcd as ([]&?) eqn:HA; apply extgcd_correct in HA; case HA as [Hb Hg'].
+  rewrite Z.gcd_mod, Z.gcd_comm in Hg' by trivial.
   rewrite H in *; subst.
   apply Z.bezout_1_gcd; cbv [Z.Bezout].
   rewrite <-Hg'.
-  match goal with z0 : Z, z1 : Z |- _ => exists z0, z1; ring end.
+  match goal with z0 : Z, z1 : Z |- _ => exists z0, (z1 mod m); ring end.
 Qed.
 
 (** ** Chinese Remainder Theorem *)

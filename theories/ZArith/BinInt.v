@@ -1478,6 +1478,9 @@ Lemma inj_testbit a n : 0<=n ->
  Z.testbit (Z.pos a) n = N.testbit (N.pos a) (Z.to_N n).
 Proof. apply Z.testbit_Zpos. Qed.
 
+Lemma inj_div2 p : p <> xH -> Z.pos (Pos.div2 p) = Z.div2 (Z.pos p).
+Proof. destruct p; trivial. intros []; trivial. Qed.
+
 (** Some results concerning Z.neg and Z.pos *)
 
 Lemma inj_neg p q : Z.neg p = Z.neg q -> p = q.

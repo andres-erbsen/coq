@@ -115,50 +115,6 @@ Module Z.
   Qed.
   Lemma gcd_mod_r x m : Z.gcd m (x mod m) = Z.gcd m x.
   Proof. rewrite Z.gcd_comm, Z.gcd_mod_l, Z.gcd_comm; trivial. Qed.
-  Lemma bezout_1_iff a b : Z.Bezout a b 1 <-> Z.gcd a b = 1.
-  Proof.
-    rewrite Zgcd_1_rel_prime.
-    transitivity (Bezout a b 1);
-      [|split; eauto using bezout_rel_prime, rel_prime_bezout].
-    split; inversion_clear 1; firstorder eauto using Bezout_intro.
-  Qed.
-  Lemma coprime_l_factor_l a b c (H : Z.gcd (a*b) c = 1) : Z.gcd a c = 1.
-  Proof.
-    rewrite <-bezout_1_iff in *; case H as (u&v&H).
-    exists (u*b), v; lia.
-  Qed.
-  Lemma coprime_l_factor_r a b c : Z.gcd (a*b) c = 1 -> Z.gcd b c = 1.
-  Proof. rewrite Z.mul_comm. apply coprime_l_factor_l. Qed.
-  Lemma coprime_mul_l a b c : Z.gcd (a*b) c = 1 <-> Z.gcd a c = 1 /\ Z.gcd b c = 1.
-  Proof. intuition eauto using Z.coprime_mul, coprime_l_factor_l, coprime_l_factor_r. Qed.
-  Lemma coprime_mul_r a b c : Z.gcd a (b*c) = 1 <-> Z.gcd a b = 1 /\ Z.gcd a c = 1.
-  Proof. rewrite 3(Z.gcd_comm a). apply coprime_mul_l. Qed.
-  Lemma coprime_r_factor_l a b c : Z.gcd a (b*c) = 1 -> Z.gcd a b = 1.
-  Proof. rewrite 2(Z.gcd_comm a); apply coprime_l_factor_l. Qed.
-  Lemma coprime_r_factor_r a b c : Z.gcd a (b*c) = 1 -> Z.gcd a c = 1.
-  Proof. rewrite 2(Z.gcd_comm a); apply coprime_l_factor_r. Qed.
-  Lemma coprime_sqr_l a b : Z.gcd (a^2) b = 1 <-> Z.gcd a b = 1.
-  Proof. rewrite Z.pow_2_r. rewrite coprime_mul_l; intuition auto. Qed.
-  Lemma coprime_sqr_r a b : Z.gcd a (b^2) = 1 <-> Z.gcd a b = 1.
-  Proof. rewrite Z.pow_2_r. rewrite coprime_mul_r; intuition auto. Qed.
-  Lemma coprime_pow_l a n b : 0 < n -> Z.gcd (a^n) b = 1 <-> Z.gcd a b = 1.
-  Proof.
-    pattern n; eapply Z.order_induction_0; try exact _; try lia.
-    intros n' n'nn IH ?.
-    rewrite Z.pow_succ_r, coprime_mul_l by lia; case (Z.eq_dec n' 0) as [->|];
-      rewrite ?Z.pow_0_r, ?Z.gcd_1_l, ?IH by lia; intuition idtac.
-  Qed.
-  Lemma coprime_pow_r a b n : 0 < n -> Z.gcd a (b^n) = 1 <-> Z.gcd a b = 1.
-  Proof. intros; rewrite Z.gcd_comm, coprime_pow_l, Z.gcd_comm; trivial; reflexivity. Qed.
-  Global Instance symmetric_rel_prime : RelationClasses.Symmetric rel_prime.
-  Proof. intros ? ?. apply rel_prime_sym. Qed.
-  Lemma coprime_prime_prime p q (Hp : prime p) (Hq : prime q) (H : p <> q) : Z.gcd p q = 1.
-  Proof.
-    pose proof prime_ge_2 _ Hp; pose proof prime_ge_2 _ Hq.
-    intros; apply Zgcd_1_rel_prime.
-    case (Z.ltb_spec p q) as []; [|symmetry];
-      apply rel_prime_le_prime; trivial; lia.
-  Qed.
 End Z.
 
 Local Open Scope Z_scope.
@@ -231,16 +187,16 @@ Module Zstar.
 Import Znumtheory ZmodDef.Zstar Base.Zstar Zstar.
 
 Lemma square_roots_opp_prime {p : positive} (Hp : prime p) (x y : Zstar p) :
-  pow_N x 2 = pow_N y 2 <-> (x = y \/ x = opp y).
+  pow x 2 = pow y 2 <-> (x = y \/ x = opp y).
 Proof.
-  rewrite <-3to_Zmod_inj_iff, 2to_Zmod_pow_N, to_Zmod_opp.
+  rewrite <-3to_Zmod_inj_iff, 2to_Zmod_pow, to_Zmod_opp.
   rewrite (Zmod.square_roots_opp_prime Hp); reflexivity.
 Qed.
 
 Lemma square_roots_1_prime (p : positive) (Hp : prime p) (x : Zstar p) :
-  pow_N x 2 = one <-> (x = one \/ x = opp one).
+  pow x 2 = one <-> (x = one \/ x = opp one).
 Proof.
-  rewrite <-3to_Zmod_inj_iff, to_Zmod_pow_N, to_Zmod_opp, to_Zmod_1.
+  rewrite <-3to_Zmod_inj_iff, to_Zmod_pow, to_Zmod_opp, to_Zmod_1.
   rewrite (Zmod.square_roots_1_prime Hp); reflexivity.
 Qed.
 
@@ -272,26 +228,26 @@ Proof. rewrite of_bool_m1_iff; intuition (congruence || lia). Qed.
 
 Local Lemma euler_criterion_subproof  {p : positive} (Hp : prime p) (a : Zstar p) :
   ∏ elements p =
-  of_bool _ (negb (existsb (fun x => mul x x =? a) (elements p))) * pow_N a ((p-1)/2).
+  of_bool _ (negb (existsb (fun x => eqb (pow x 2) a) (elements p))) * pow a ((p-1)/2).
 Proof.
   apply wlog_eq_Zstar_3; intro Hp'.
 
   (* Tripartite categorization *)
   rewrite existsb_as_filter, negb_involutive.
-  set (roots := filter (fun x : ZmodDef.Zstar p => mul x x =? a) (elements p)).
+  set (roots := filter (fun x : ZmodDef.Zstar p => eqb (pow x 2) a) (elements p)).
   set (smalls := filter (fun x : ZmodDef.Zstar p => x <? div a x) (elements p)).
   set (larges := filter (fun x : ZmodDef.Zstar p => div a x <? x) (elements p)).
   assert (HP : Permutation (elements p) (roots ++ (smalls ++ larges))). {
-   erewrite (Permutation_partition (fun x : Zstar _ => mul x x =? a)).
+   erewrite (Permutation_partition (fun x : Zstar _ => pow x 2 =? a)).
    erewrite (Permutation_partition (fun x : Zstar _ => x <? div a x) (snd _)).
    rewrite !partition_as_filter; cbn [fst snd]; rewrite !filter_filter.
    assert (Hiff : forall x, x*x = a :> Z <-> a/x = x :> Z).
    { intros x; rewrite !Zmod.to_Z_inj_iff, !to_Zmod_inj_iff.
      erewrite <-(mul_cancel_l_iff x _ x), mul_div_r_same_r. split; congruence. }
    erewrite (filter_ext (fun _ => _ && _) (fun x : Zstar _ => x <? div a x)); cycle 1.
-   { intros x; eapply andb_implied_r; rewrite negb_true_iff, Z.eqb_neq, Hiff; lia. }
+   { intros x; eapply andb_implied_r; rewrite pow_2_r, negb_true_iff, Z.eqb_neq, Hiff; lia. }
    erewrite (filter_ext (fun _ => _ && _) (fun x => div a x <? x)); cycle 1.
-   { intros x; apply eq_true_iff_eq. rewrite !andb_true_iff, !negb_true_iff, Z.eqb_neq, Hiff; lia. }
+   { intros x; apply eq_true_iff_eq. rewrite pow_2_r, !andb_true_iff, !negb_true_iff, Z.eqb_neq, Hiff; lia. }
    trivial. }
 
   pose proof @NoDup_elements p. (* TODO @ *)
@@ -321,7 +277,6 @@ Proof.
     { intros []. exists (div a x). rewrite mul_div_r_same_r, div_div_r_same. intuition apply in_elements. }
     { intros (y&A&?&?). rewrite A in *. rewrite mul_comm.
       rewrite div_mul_l, div_same, mul_1_r in *. intuition apply in_elements. } }
-
   erewrite prod_Permutation, prod_app by eapply HP.
   erewrite (prod_Permutation _ (smalls++_) (flat_map (fun x => [x;a/x]) smalls)); cycle 1.
   { generalize (div a) as f; generalize smalls as xs; generalize (Zstar p) as A; clear.
@@ -331,40 +286,40 @@ Proof.
   { intros x. cbn [fold_right]. rewrite mul_1_r, mul_div_r_same_r; trivial. }
 
   (* Counting elements *)
-  assert (length (elements p) - length roots = 2*length smalls)%nat as HL.
+  assert (length (elements p) = length roots + 2*length smalls)%nat as HL.
   { erewrite Permutation.Permutation_length, !length_app, !length_map by eauto; lia. }
-  assert (N.of_nat (length smalls) = (p-1-N.of_nat (length roots))/2)%N as ->.
+  assert (Z.of_nat (length smalls) = (p-1-Z.of_nat (length roots))/2)%Z as ->.
   { pose proof Zstar.length_elements_prime p Hp.
     zify; Z.to_euclidean_division_equations; lia. }
-  
+
   (* Casework on [length roots] using [NoDup roots] *)
   destruct roots as [|x roots'] eqn:A. (* no roots *)
-  { cbn [fold_right length Nat.eqb of_bool]; rewrite ?mul_1_l, N.sub_0_r; trivial. }
+  { cbn [fold_right length Nat.eqb of_bool]; rewrite ?mul_1_l, Z.sub_0_r; trivial. }
   assert (Hx: In x roots). { rewrite A. left. split. } apply filter_In, proj2 in Hx.
   destruct roots' as [|y roots''] eqn:B. (* 1 *)
   { unshelve ecase (opp_distinct_odd _ _ x); try lia; auto using odd_prime.
     assert (In (opp x) roots) as AA.
-    { apply filter_In, conj; try apply in_elements; rewrite mul_opp_opp; trivial. }
+    { apply filter_In, conj; try apply in_elements. rewrite pow_opp_2; trivial. }
     rewrite A in AA; inversion AA as [|AAA]; trivial; inversion AAA. }
   (* 2 <= *)
   assert (Hy: In y roots). { rewrite A. right. left. split. } apply filter_In, proj2 in Hy.
-  rewrite Z.eqb_eq, Zmod.to_Z_inj_iff, to_Zmod_inj_iff in Hx, Hy.
+  rewrite eqb_eq in *.
   assert (y = opp x) as ->.
   { case (proj1 (square_roots_opp_prime Hp y x)); trivial.
-    { rewrite 2pow_N_2_r; congruence. }
+    { congruence. }
     { intros ->. inversion_clear NDroots as [|? ? X]; case X; left; trivial. } }
   destruct roots'' as [|z roots''']; cycle 1. (* 3 <= *)
   { assert (Hz: In z roots). { rewrite A. right. right. left. split. } apply filter_In, proj2 in Hz.
-    rewrite Z.eqb_eq, Zmod.to_Z_inj_iff, to_Zmod_inj_iff in Hz.
+    rewrite ?eqb_eq in *.
     { case (proj1 (square_roots_opp_prime Hp z x)) as [->| ->].
-      { rewrite 2pow_N_2_r; congruence. }
+      { congruence. }
       { inversion_clear NDroots as [|? ? X]; case X; right; left; split. }
-      { inversion_clear NDroots as [|? ? ? X]. 
+      { inversion_clear NDroots as [|? ? ? X].
         inversion_clear X as [|? ? Y]; case Y; left; split. } } }
   (* 2 roots *)
   cbn [fold_right length Nat.eqb of_bool];
-  repeat rewrite ?mul_1_r, ?mul_1_l, ?mul_opp_l, ?mul_opp_r, ?Hx. 
-  rewrite <-pow_N_succ_r. f_equal. f_equal.
+  repeat rewrite ?mul_1_r, ?mul_1_l, ?mul_opp_l, ?mul_opp_r.
+  rewrite <-pow_2_r, Hx, <-pow_succ_r. f_equal. f_equal.
   zify; Z.to_euclidean_division_equations; lia.
 Qed.
 
@@ -372,21 +327,22 @@ Qed.
 Theorem prod_elements_prime {p : positive} (Hp : prime p) : ∏ elements p = opp one.
 Proof.
   rewrite (euler_criterion_subproof Hp one).
-  rewrite (proj2 (existsb_exists _ _)), pow_N_1_l, mul_1_r; cbn [of_bool negb]; trivial.
-  exists one; rewrite ?mul_1_l, Z.eqb_refl; auto using in_elements.
+  rewrite (proj2 (existsb_exists _ _)), pow_1_l, mul_1_r; cbn [of_bool negb]; trivial.
+  exists one; rewrite ?pow_1_l, ?eqb_eq ; auto using in_elements.
 Qed.
 
 Lemma euler_criterion_existsb {p : positive} a (Hp : prime p) :
-  pow_N a ((p-1)/2) = of_bool p (existsb (fun x => eqb (pow_N x 2) a) (elements p)).
+  pow a ((p-1)/2) = of_bool p (existsb (fun x => eqb (pow x 2) a) (elements p)).
 Proof.
   pose proof euler_criterion_subproof Hp a as H.
   rewrite prod_elements_prime in H by trivial.
   apply (f_equal opp) in H; rewrite ?of_bool_negb, ?mul_opp_l, ?opp_opp in H.
-  case existsb in *; cbn [of_bool] in *; rewrite H, ?mul_opp_l, ?opp_opp, ?mul_1_l; trivial.
+  case existsb in *; cbn [of_bool] in *;
+    rewrite H, ?mul_opp_l, ?opp_opp, ?mul_1_l; trivial.
 Qed.
 
 Theorem euler_criterion {p : positive} (a : Zstar p) (Hp : prime p):
-  pow_N a ((p-1)/2) = one <-> exists x, pow_N x 2 = a.
+  pow a ((p-1)/2) = one <-> exists x, pow x 2 = a.
 Proof.
   split.
   { case (Pos.leb_spec 3 p) as []; cycle 1.
@@ -397,8 +353,7 @@ Proof.
 Qed.
 
 Lemma euler_criterion_nonsquare {p : positive} (Hp : prime p)
-  (a : Zstar p) (Ha : forall x, pow_N x 2 <> a) :
-  pow_N a ((p-1)/2) = opp one.
+  (a : Zstar p) (Ha : forall x, pow x 2 <> a) : pow a ((p-1)/2) = opp one.
 Proof.
   rewrite euler_criterion_existsb by trivial.
   case existsb eqn:H; trivial; exfalso.
@@ -407,15 +362,13 @@ Proof.
 Qed.
 
 Lemma euler_criterion_neq_one {p : positive} (Hp : prime p)
-  (a : Zstar p) (H : pow_N a ((p-1)/2) <> one) :
-  forall x, pow_N x 2 <> a.
+  (a : Zstar p) (H : pow a ((p-1)/2) <> one) : forall x, pow x 2 <> a.
 Proof.
   rewrite euler_criterion in H by trivial; intros x Hx; case H; eauto.
 Qed.
 
 Lemma euler_criterion_m1 {p : positive} (Hp : prime p) (Hp' : 3 <= p)
-  (a : Zstar p) (H : pow_N a ((p-1)/2) = opp one) :
-  forall x, pow_N x 2 <> a.
+  (a : Zstar p) (H : pow a ((p-1)/2) = opp one) : forall x, pow x 2 <> a.
 Proof.
   apply euler_criterion_neq_one; trivial; rewrite H; apply opp_1_neq_1; trivial.
 Qed.
@@ -424,33 +377,33 @@ End Zstar.
 Module Zmod.
 Import Znumtheory ZmodDef.Zmod Base.Zmod Zmod.
 Local Infix "*" := mul.
-Local Infix "^" := pow_N.
+Local Infix "^" := pow.
 
 Theorem euler_criterion_square_nz {p : positive} (Hp : prime p)
-  (a sqrt_a : Zmod p) (Ha : pow_N sqrt_a 2 = a) (Hnz : a <> zero) :
-  pow_N a ((p-1)/2) = one.
+  (a sqrt_a : Zmod p) (Ha : pow sqrt_a 2 = a) (Hnz : a <> zero) :
+  pow a ((p-1)/2) = one.
 Proof.
-  assert (sqrt_a <> zero). { intros ->; rewrite pow_N_0_l in *; congruence. }
+  assert (sqrt_a <> zero). { intros ->; rewrite pow_0_l in *; congruence. }
   rewrite <-to_Z_0_iff in *; pose proof to_Z_range a; pose proof to_Z_range sqrt_a.
   assert (Z.gcd a p = 1) by (apply Zgcd_1_rel_prime, rel_prime_le_prime; trivial; lia).
   assert (Z.gcd sqrt_a p = 1) by (apply Zgcd_1_rel_prime, rel_prime_le_prime; trivial; lia).
   unshelve epose proof
     (E := Zstar.euler_criterion_square Hp (Zstar.of_Zmod a) (Zstar.of_Zmod sqrt_a) _).
-  { apply Zstar.to_Zmod_inj; rewrite Zstar.to_Zmod_pow_N, 2Zstar.to_Zmod_of_Zmod; trivial. }
+  { apply Zstar.to_Zmod_inj; rewrite Zstar.to_Zmod_pow, 2Zstar.to_Zmod_of_Zmod; trivial. }
   apply (f_equal Zstar.to_Zmod) in E.
-  rewrite Zstar.to_Zmod_pow_N, Zstar.to_Zmod_of_Zmod, Zstar.to_Zmod_1 in E; trivial.
+  rewrite Zstar.to_Zmod_pow, Zstar.to_Zmod_of_Zmod, Zstar.to_Zmod_1 in E; trivial.
 Qed.
 
 Theorem euler_criterion_square {p : positive} (Hp : prime p)
-  (a sqrt_a : Zmod p) (Ha : pow_N sqrt_a 2 = a) :
-  a = zero \/ pow_N a ((p-1)/2) = one.
+  (a sqrt_a : Zmod p) (Ha : pow sqrt_a 2 = a) :
+  a = zero \/ pow a ((p-1)/2) = one.
 Proof.
   pose proof euler_criterion_square_nz Hp _ _ Ha.
   case (eqb_spec a zero); intuition idtac.
 Qed.
 
 Theorem euler_criterion {p : positive} a (Hp : prime p) :
-  (a = zero \/ a ^ ((p - 1) / 2) = one) <-> exists x : Zmod p, pow_N x 2 = a.
+  (a = zero \/ a ^ ((p - 1) / 2) = one) <-> exists x : Zmod p, pow x 2 = a.
 Proof.
   split; cycle 1.
   { intros []; eauto using euler_criterion_square. }
@@ -460,45 +413,48 @@ Proof.
   case (Pos.eq_dec p 2) as [->|]. {
     (pose proof in_elements a as C; rewrite elements_2 in C;
       cbv [In] in *; intuition subst); [exists zero|exists one]; trivial. }
-  assert (((p - 1) / 2)%N <> 0%N) by (zify; Z.div_mod_to_equations; nia).
-  assert (a <> zero). { intros ->; rewrite pow_N_0_l in *. congruence. lia. }
+  assert (((p - 1) / 2) <> 0)%Z by (zify; Z.div_mod_to_equations; nia).
+  assert (a <> zero). { intros ->; rewrite pow_0_l in *. congruence. lia. }
   rewrite <-to_Z_0_iff in H2; pose proof to_Z_range a.
   assert (Z.gcd a p = 1). { apply Zgcd_1_rel_prime, rel_prime_le_prime; trivial; lia. }
   case (proj1 (@Zstar.euler_criterion p (Zstar.of_Zmod a) Hp)) as [x Hx].
   { apply Zstar.to_Zmod_inj.
-    rewrite Zstar.to_Zmod_pow_N, Zstar.to_Zmod_of_Zmod, Zstar.to_Zmod_1; trivial. }
+    rewrite Zstar.to_Zmod_pow, Zstar.to_Zmod_of_Zmod, Zstar.to_Zmod_1; trivial. }
   { exists x. apply (f_equal Zstar.to_Zmod) in Hx.
-    rewrite Zstar.to_Zmod_pow_N, Zstar.to_Zmod_of_Zmod in Hx; trivial. }
+    rewrite Zstar.to_Zmod_pow, Zstar.to_Zmod_of_Zmod in Hx; trivial. }
 Qed.
 
 Import ZmodSqrtDef.Zmod.
 Section WithAB.
+Local Infix "^" := pow.
 Context {m} (phi_m : positive) (a b : Zmod m).
 Local Notation chase_sqrt := (@Zmod.chase_sqrt m phi_m a b).
 Context (b_spec : b ^ N.div2 phi_m = opp one).
 Context (sqrts_1 : forall x : Zmod m, x ^ 2 = one -> x = one \/ x = opp one).
-Local Lemma Private_chase_sqrt_correct (apow : positive) bpow :
-  mul (pow_N a apow) (pow_N b bpow) = one /\
+Local Lemma Private_chase_sqrt_correct (apow : positive) (bpow : N) :
+  mul (pow a apow) (pow b bpow) = one /\
   (forall k:N, (2^k | apow) -> (2*2^k | bpow)) /\
   (forall k:N, (2^k | apow) -> (2^k | N.div2 phi_m)) ->
   chase_sqrt apow bpow ^ 2 = a.
 Proof.
   revert bpow; induction apow; cbn [chase_sqrt]; intros ?; cycle -1.
   { intros (A&B&P).
-    rewrite pow_N_1_r in *.
-    rewrite pow_N_mul_l, <-pow_N_mul_r, pow_N_2_r, <-mul_assoc.
-    assert (N.div2 bpow * 2 = bpow)%N as ->. {
+    rewrite pow_1_r in *.
+    rewrite pow_mul_l_nonneg, <-Zmod.pow_mul_r_nonneg, pow_2_r, <-mul_assoc
+      by (try apply N2Z.is_nonneg; lia).
+    assert (Z.mul (N.div2 bpow) 2 = bpow) as ->. {
       case (B 0%N) as [].
       { exists (xH); cbn. lia. }
       zify; Z.div_mod_to_equations; nia. }
     rewrite A, mul_1_r; trivial. }
-  { rewrite pow_N_mul_l, <-2pow_N_mul_r.
-    assert (Pos.succ apow * 2 = N.succ (xI apow))%N as -> by lia; intros (A&B&P).
-    assert (N.div2 bpow * 2 = bpow)%N as ->. {
+  { rewrite pow_mul_l_nonneg, <-2Zmod.pow_mul_r_nonneg
+      by (try apply N2Z.is_nonneg; lia).
+    assert (Z.mul (Pos.succ apow) 2 = N.succ (xI apow)) as -> by lia; intros (A&B&P).
+    assert (Z.mul (N.div2 bpow) 2 = bpow) as ->. {
       case (B 0%N) as [].
       { exists (xI apow); cbn. lia. }
       zify; Z.div_mod_to_equations; nia. }
-    rewrite pow_N_succ_r, <-mul_assoc, A, mul_1_r; trivial. }
+    rewrite N2Z.inj_succ, pow_succ_r_nonneg, <-mul_assoc, N2Z.inj_pos, A, mul_1_r; trivial; lia. }
   { case (eqb_spec (a^apow * b^N.div2 bpow) one) as [E|E];
       intros (A&B&P); apply IHapow; clear IHapow.
     { split; trivial. split.
@@ -510,10 +466,11 @@ Proof.
         zify; Z.div_mod_to_equations; nia. }
       { intros k [x Hx]. apply P. exists (Z.double x). lia. } }
     { split.
-      { rewrite Zmod.pow_N_add_r, mul_assoc, b_spec.
+      { rewrite N2Z.inj_add, Zmod.pow_add_r_nonneg, mul_assoc, b_spec by apply N2Z.is_nonneg.
         case (sqrts_1 (mul (a^apow) (b^N.div2 bpow))) as [| ->]; try contradiction.
-        { rewrite pow_N_mul_l, <-2pow_N_mul_r, N.mul_comm.
-          assert (N.div2 bpow * 2 = bpow)%N as ->. {
+        { rewrite Zmod.pow_mul_l_nonneg, <-2Zmod.pow_mul_r_nonneg, Z.mul_comm
+            by (try apply N2Z.is_nonneg; lia).
+          assert (Z.mul (N.div2 bpow) 2 = bpow) as ->. {
             case (B 0%N) as [].
             { exists (xO apow); cbn. lia. }
             zify; Z.div_mod_to_equations; nia. }
@@ -539,7 +496,7 @@ Local Lemma Private_chase_sqrt_0 : forall m phi_m b apow bpow,
   @Zmod.chase_sqrt m phi_m zero b apow bpow = zero.
 Proof.
   induction apow; cbn [Zmod.chase_sqrt]; intros;
-    rewrite ?pow_N_0_l, ?mul_0_l by lia; trivial.
+    rewrite ?pow_0_l, ?mul_0_l by lia; trivial.
   case eqb; trivial.
 Qed.
 
@@ -556,12 +513,12 @@ Proof.
   { rewrite Private_chase_sqrt_0; trivial. }
   apply Private_chase_sqrt_correct; trivial.
   { intros. apply Zmod.square_roots_1_prime; trivial. }
-  rewrite Zmod.pow_N_0_r, Zmod.mul_1_r. split; [|split].
+  rewrite Zmod.pow_0_r, Zmod.mul_1_r. split; [|split].
   { rewrite <-E; f_equal.
-    rewrite N.pos_div2; zify; Z.to_euclidean_division_equations; nia. }
+    rewrite Pos2Z.inj_div2; zify; Z.to_euclidean_division_equations; nia. }
   { intros. apply Z.divide_0_r. }
   { case (Pos.eq_dec (Pos.pred p) 1) as [->|]; [intros; apply Z.divide_0_r|].
-    rewrite <-N.pos_div2; trivial. }
+    rewrite N2Z.inj_div2, Pos2Z.inj_div2; trivial. }
 Qed.
 
 Lemma nonsquare_correct {p : positive} (Hp : prime p) (Hp' : 3 <= p) :
@@ -574,16 +531,16 @@ Proof.
   pose proof find_none _ _ H as H'; cbv beta in *; clear H; rename H' into H.
   specialize (fun x : Zstar p => (H x (in_elements x))).
   setoid_rewrite <-not_true_iff_false in H; setoid_rewrite eqb_eq in H.
-  setoid_rewrite <-Zstar.to_Zmod_pow_N in H.
+  setoid_rewrite <-Zstar.to_Zmod_pow in H.
   setoid_rewrite <-Zstar.to_Zmod_1 in H.
   setoid_rewrite <-Zstar.to_Zmod_opp in H.
   setoid_rewrite Zstar.to_Zmod_inj_iff in H.
-  unshelve epose proof @NoDup_incl_length _ _ (map (fun x : Zstar p => Zstar.pow_N x 2) (Zstar.positives p)) (Zstar.NoDup_elements) _ as X; cbv [incl] in *.
+  unshelve epose proof @NoDup_incl_length _ _ (map (fun x : Zstar p => Zstar.pow x 2) (Zstar.positives p)) (Zstar.NoDup_elements) _ as X; cbv [incl] in *.
   { intros a _; specialize (H a).
     rewrite Zstar.euler_criterion_existsb, Zstar.of_bool_m1_iff_ge3 in H by trivial.
     rewrite not_false_iff_true, existsb_exists in H; case H as [x [_ H%Zstar.eqb_eq]].
     apply in_map_iff; exists (Zstar.abs x); auto using Zstar.in_elements.
-    rewrite Zstar.pow_N_abs_2; split; trivial.
+    rewrite Zstar.pow_abs_2; split; trivial.
     rewrite Zstar.in_positives, Zstar.to_Zmod_abs, signed_abs_odd by (apply odd_prime; trivial).
     rewrite Z.abs_pos, signed_0_iff. apply Zstar.to_Zmod_nz; lia. }
   rewrite length_map in X.
@@ -600,13 +557,10 @@ Proof.
   case (Pos.eq_dec p 2) as [->|].
   { pose proof in_elements a as C; rewrite elements_2 in C.
     case C as [|[|[]]]; subst; trivial. }
-  cbv [sqrtp]; case eqb eqn:E; cycle 1.
-  { rewrite <-not_true_iff_false, eqb_eq in E.
-    case H as [x H]; eapply euler_criterion_square in H; intuition eauto. }
-  rewrite pow_N_abs_2.
-  apply sqrtp'_correct; trivial.
-  rewrite <-nonsquare_correct by (trivial; lia); f_equal.
-  zify; Z.to_euclidean_division_equations; nia.
+  cbv [sqrtp].
+  rewrite sqrtp'_correct, eqb_refl, pow_abs_2, sqrtp'_correct; trivial;
+    rewrite <-nonsquare_correct by (trivial; lia); f_equal;
+    zify; Z.to_euclidean_division_equations; nia.
 Qed.
 
 Lemma abs_sqrtp p (a : Zmod p) : abs (sqrtp a) = sqrtp a.
@@ -615,10 +569,10 @@ Proof. cbv [sqrtp]; case eqb; rewrite ?abs_abs, ?abs_0; trivial. Qed.
 Lemma sqrtp_nonsq (p : positive) (Hp : prime p) a :
   (forall x, x ^ 2 <> a) -> @sqrtp p a = zero.
 Proof.
-  cbv [sqrtp]; intros X; case eqb eqn:E; trivial.
-  rewrite eqb_eq in E.
-  case (proj1 (euler_criterion a Hp)) as [x H]; eauto.
-  case (X x H).
+  pose proof sqrtp_square p Hp a.
+  cbv [sqrtp] in *; intros X; case eqb eqn:E; trivial.
+  rewrite eqb_eq, pow_abs_2 in *.
+  case (fun x => (X (sqrtp' a (nonsquare p))) (H x)); eauto.
 Qed.
 
 Import Znumtheory.
@@ -645,8 +599,8 @@ Proof.
   assert ((2 * x * (c * invmod (-2 * x) q)) = -c * (invmod (-2*x) q * (-2*x))) as -> by ring.
   rewrite <-Z.mul_mod_idemp_r by lia.
   rewrite invmod_coprime; [|lia|..]; cycle 1.
-  { apply Z.coprime_mul; trivial. change (-2) with (Z.opp 2); rewrite Z.gcd_opp_l.
-    rewrite <-Z.gcd_mod, Hp; trivial; lia. }
+  { apply Z.coprime_mul_l; trivial. change (-2) with (Z.opp 2); rewrite Z.gcd_opp_l.
+    rewrite <-Z.gcd_mod, Hp; intuition lia. }
   rewrite Z.add_mod_idemp_r, Z.mul_1_r, Z.add_opp_r, Z.sub_diag, Z.mul_0_l; lia.
 Qed.
 
@@ -684,19 +638,19 @@ Qed.
 (* TODO: move*)
 Section __.
 Import ZmodDef.Zmod Zmod.
-Local Ltac bruteforce x a := 
+Local Ltac bruteforce x a :=
   rewrite <-?Zmod.eqb_eq, <-?orb_true_iff, <-?andb_true_iff; unfold iff;
   rewrite <-?implb_true_iff, <-?andb_true_iff;
   specialize (Zmod.in_elements x); revert x; apply forallb_forall;
   specialize (Zmod.in_elements a); revert a; apply forallb_forall;
   vm_cast_no_check (eq_refl true).
-Local Lemma sqrtmod2 (x a : Zmod 2) : pow_N x 2 = a <-> x = a.
+Local Lemma sqrtmod2 (x a : Zmod 2) : pow x 2 = a <-> x = a.
 Proof. bruteforce x a. Qed.
 Local Lemma sqrtmod4 (x a : Zmod 4) :
-  (pow_N x 2 = a /\ Z.odd a = true) <-> (a = one /\ abs x = one).
+  (pow x 2 = a /\ Z.odd a = true) <-> (a = one /\ abs x = one).
 Proof. bruteforce x a. Qed.
 Local Lemma sqrtmod8 (x a : Zmod 8) :
-  (pow_N x 2 = a /\ Z.odd a = true) <-> (a = one /\ (abs x = one \/ abs x = of_Z _ 3)).
+  (pow x 2 = a /\ Z.odd a = true) <-> (a = one /\ (abs x = one \/ abs x = of_Z _ 3)).
 Proof. bruteforce x a. Qed.
 Lemma odd_square_mod8 z (H : Z.odd (z^2) = true) : z^2 mod 8 = 1.
 Proof.
@@ -754,7 +708,7 @@ Section WithP.
 
   Context (Hp : prime p).
   Local Lemma Private_sqrtpop'_correct (Hodd : 3 <= p) lgk :
-    forall a (Ha : Z.gcd a p = 1) (Hsq : exists x : Zmod p, pow_N x 2 = a mod p :> Z)
+    forall a (Ha : Z.gcd a p = 1) (Hsq : exists x : Zmod p, pow x 2 = a mod p :> Z)
     (q := Z.pow p (two_power_nat lgk)), sqrtpop' lgk a ^ 2 mod q = a mod q.
   Proof.
     pose proof odd_prime _ Hp Hodd as Hp'.
@@ -781,14 +735,14 @@ Section WithP.
   Proof.
     induction lgk; cbn [sqrtpop']; intros.
     { unshelve epose proof sqrtp_square p Hp zero _.
-      { exists zero. rewrite pow_N_0_l; trivial; lia. }
-      apply to_Z_0_iff; rewrite pow_N_2_r in H.
+      { exists zero. rewrite pow_0_l; trivial; lia. }
+      apply to_Z_0_iff; rewrite pow_2_r in H.
       apply Zmod.mul_0_iff_prime in H; intuition idtac. }
     rewrite ?two_power_nat_equiv, Z.mod_0_l, ?IHlgk,
       ?Z.add_0_l, ?Z.sub_0_r, ?Z.pow_0_l, ?Z.div_0_l, ?Z.mul_0_l; lia.
   Qed.
 
-  Local Lemma Private_sqrtpp'_correct k (q := Pos.pow p k) 
+  Local Lemma Private_sqrtpp'_correct k (q := Pos.pow p k)
     a (Ha : Z.gcd a p = 1) (Hsq : exists x, x^2 mod q = a mod q :> Z) :
     sqrtpp' k a ^ 2 mod q = a mod q.
   Proof.
@@ -799,7 +753,7 @@ Section WithP.
     unshelve epose proof Private_sqrtpop'_correct _ (Z.to_nat (Z.log2_up k)) a _ _; trivial.
     { pose proof prime_ge_2 p Hp. lia. }
     { case Hsq as [r Hr]. exists (of_Z _ r).
-      rewrite !to_Z_pow_N, !to_Z_of_Z.
+      rewrite !to_Z_pow_nonneg, !to_Z_of_Z by lia.
       admit. (* sqrt mod p iff sqrt mod p^k (given gcd 1 *) }
     rewrite two_power_nat_equiv, Z2Nat.id in * by apply Z.log2_up_nonneg.
     remember (p ^ 2 ^ Z.log2_up k) as q'; cbv zeta in *.
@@ -810,7 +764,7 @@ Section WithP.
     rewrite !mod_mod_divide in H; trivial; try (eexists; eauto).
   Admitted.
 
-  Lemma sqrtpp_correct (k : positive) (q := Pos.pow p k) a 
+  Lemma sqrtpp_correct (k : positive) (q := Pos.pow p k) a
      (Hsq : exists x, x^2 mod q = a mod q) : sqrtpp k a ^ 2 mod q = a mod q.
   Proof.
     cbv [q sqrtpp] in *; rewrite ?Pos2Z.inj_pow in *.
