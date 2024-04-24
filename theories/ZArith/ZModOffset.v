@@ -1,14 +1,4 @@
-(************************************************************************)
-(*         *   The Coq Proof Assistant / The Coq Development Team       *)
-(*  v      *         Copyright INRIA, CNRS and contributors             *)
-(* <O___,, * (see version control and CREDITS file for authors & dates) *)
-(*   \VV/  **************************************************************)
-(*    //   *    This file is distributed under the terms of the         *)
-(*         *     GNU Lesser General Public License Version 2.1          *)
-(*         *     (see LICENSE file for the text of the license)         *)
-(************************************************************************)
-
-Require Import BinInt Zdiv Znumtheory PreOmega Lia.
+Require Import BinInt Zdiv Zdiv_facts Znumtheory PreOmega Lia.
 Local Open Scope Z_scope.
 
 Module Z.
@@ -78,6 +68,12 @@ Lemma omod_idemp_mul d x y m :
   Z.omodulo d (Z.omodulo d x m * Z.omodulo d y m) m = Z.omodulo d (x * y) m.
 Proof. apply omod_inj_mod; rewrite Zmult_mod, !mod_omod, <-Zmult_mod; trivial. Qed.
 
+Lemma omod_diveq_iff c a b d :
+  (b = 0 \/ c*b <= a - d < c*b + b \/ c*b + b < a - d <= c*b) <->
+  Z.omodulo d a b = a-b*c.
+Proof. cbv [omodulo]. rewrite Z.mod_diveq_iff; lia. Qed.
+
+Definition omod_diveq c a b d := proj1 (omod_diveq_iff c a b d).
 
 Definition smodulo a b := Z.omodulo (- Z.quot b 2) a b.
 
@@ -144,6 +140,12 @@ Proof. intros; apply smod_small_iff; auto 2. Qed.
 Lemma smod_even_small a b : Z.rem b 2 = 0 -> -b <= 2*a < b -> Z.smodulo a b = a.
 Proof. intros; apply smod_even_small_iff; auto 2. Qed.
 
+Lemma smod_pow2_small a w (H : 0 < w) : - 2 ^ w <= 2 * a < 2 ^ w -> Z.smodulo a (2^w) = a.
+Proof.
+  intros; apply Z.smod_even_small; trivial.
+  rewrite <-(Z.succ_pred w), Z.pow_succ_r; Z.to_euclidean_division_equations; lia.
+Qed.
+
 Lemma smod_small_neg a b : b < 2*a - Z.rem b 2 <= - b -> Z.smodulo a b = a.
 Proof. intros; apply smod_small_iff; auto 3. Qed.
 
@@ -155,6 +157,21 @@ Proof. apply Z.omod_0_r. Qed.
 
 Lemma smod_0_l m : Z.smodulo 0 m = 0.
 Proof. apply smod_small_iff; Z.to_euclidean_division_equations; lia. Qed.
+
+Lemma smod_diveq_iff c a b :
+  (b = 0 \/ c*b <= a + Z.quot b 2 < c*b + b \/ c*b + b < a + Z.quot b 2 <= c * b) <->
+  Z.smodulo a b = a-b*c.
+Proof. cbv [smodulo]. rewrite <-omod_diveq_iff; lia. Qed.
+
+Definition smod_diveq c a b := proj1 (smod_diveq_iff c a b).
+
+Lemma smod_diveq_even_iff c a b :
+  Z.rem b 2 = 0 ->
+  (b = 0 \/ 2*c*b <= 2*a+b < 2*c*b + 2*b \/ 2*c*b+2*b < 2*a+b <= 2*c*b) <->
+  Z.smodulo a b = a-b*c.
+Proof. cbv [smodulo]. rewrite <-omod_diveq_iff. Z.to_euclidean_division_equations; nia. Qed.
+
+Definition smod_diveq_even c a b H := proj1 (smod_diveq_even_iff c a b H).
 
 Lemma smod_complement a b h (H : b = 2*h) :
   Z.smodulo a b / h = - (Z.modulo a b / h).
