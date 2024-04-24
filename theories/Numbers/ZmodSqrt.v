@@ -70,7 +70,7 @@ Lemma list_prod_filter_l [A B] (f : A -> _) l (l' : list B) :
   list_prod (filter f l) l' = filter (fun p => f (fst p)) (list_prod l l').
 Proof.
   induction l; cbn [filter list_prod]; trivial.
-  rewrite filter_app, filter_map_comm; cbn [fst].
+  rewrite filter_app, filter_map_swap; cbn [fst].
   case f; rewrite ?filter_true, ?filter_false; cbn [list_prod map];
   rewrite ?IHl; auto.
 Qed.
@@ -78,7 +78,7 @@ Lemma list_prod_filter_r [A B] (f : B -> _) (l : list A) l' :
   list_prod l (filter f l') = filter (fun p => f (snd p)) (list_prod l l').
 Proof.
   induction l; cbn [filter list_prod]; trivial.
-  rewrite filter_app, filter_map_comm; cbn [snd].
+  rewrite filter_app, filter_map_swap; cbn [snd].
   rewrite ?IHl; f_equal.
 Qed.
 Lemma list_prod_filter_filter [A B] f g (l : list A) (l' : list B) :
@@ -155,7 +155,7 @@ Proof.
   eapply (Permutation_filter (fun x : Zmod (a*b) => Z.gcd x (a*b) =? 1)) in P.
   eapply (Permutation_map (@of_Zmod (a*b))) in P.
   rewrite <-Pos2Z.inj_mul in P; rewrite P; clear P.
-  symmetry; rewrite <-map_map with (g:=of_Zmod), filter_map_comm; Morphisms.f_equiv.
+  symmetry; rewrite <-map_map with (g:=of_Zmod), filter_map_swap; Morphisms.f_equiv.
   erewrite <-map_ext, <-map_map with (f := fun xy : Zstar _ * Zstar _ => (fst xy : Zmod _, snd xy : Zmod _)); Morphisms.f_equiv; cbv beta.
   2: { intros []; trivial. }
   cbv [elements]; erewrite list_prod_map_map, map_map, list_prod_filter_filter;

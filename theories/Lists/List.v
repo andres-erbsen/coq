@@ -1693,7 +1693,7 @@ End Fold_Right_Recursor.
 
   Section Filtering.
 
-    Lemma filter_map_comm A B f g l :
+    Lemma filter_map_swap A B f g l :
       filter f (@map A B g l) = @map A B g (filter (fun a => f (g a)) l).
     Proof. induction l; cbn [map filter]; auto. rewrite IHl; case f; auto. Qed.
 

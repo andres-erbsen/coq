@@ -1481,6 +1481,15 @@ Proof. apply Z.testbit_Zpos. Qed.
 Lemma inj_div2 p : p <> xH -> Z.pos (Pos.div2 p) = Z.div2 (Z.pos p).
 Proof. destruct p; trivial. intros []; trivial. Qed.
 
+Lemma inj_shiftl p n : Z.pos (Pos.shiftl p n) = Z.shiftl (Z.pos p) (Z.of_N n).
+Proof.
+  case n as [|n]; trivial.
+  revert p; induction n using Pos.peano_ind; trivial; intros.
+  cbv [Pos.shiftl] in *; rewrite Pos.iter_succ_r, IHn.
+  cbn [Z.of_N]. rewrite Pos2Z.inj_succ, <-Z.add_1_l, <-Z.shiftl_shiftl;
+    auto using Z.le_0_1.
+Qed.
+
 (** Some results concerning Z.neg and Z.pos *)
 
 Lemma inj_neg p q : Z.neg p = Z.neg q -> p = q.

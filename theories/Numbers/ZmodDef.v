@@ -40,7 +40,7 @@ Notation zero := (Private_of_N_value _ 0 I).
 
 Definition one {m} := of_Z m 1.
 
-(** Ring operations *)
+(** ** Ring operations *)
 
 Definition eqb {m} (x y : Zmod m) := Z.eqb (to_Z x) (to_Z y).
 
@@ -58,7 +58,7 @@ Definition opp {m} (x : Zmod m) : Zmod m := sub zero x.
 
 Definition mul {m} (x y : Zmod m) : Zmod m := of_Z m (to_Z x * to_Z y).
 
-(** Three notions of division *)
+(** ** Three notions of division *)
 
 Definition udiv {m} (x y : Zmod m) : Zmod m.
   refine (of_small_Z m (Z.div x y) (fun _ => _)).
@@ -66,19 +66,31 @@ Definition udiv {m} (x y : Zmod m) : Zmod m.
     zify; Z.to_euclidean_division_equations; nia).
 Defined.
 
+Definition umod {m} (x y : Zmod m) : Zmod m.
+  refine (of_small_Z m (Z.modulo (unsigned x) (unsigned y)) (fun _ => _)).
+  abstract (pose proof to_Z_range x; pose proof to_Z_range y;
+    zify; Z.to_euclidean_division_equations; nia).
+Defined.
+
 Definition sdiv {m} (x y : Zmod m) := of_Z m (Z.div (signed x) (signed y)).
 
-Definition inv {m} (x : Zmod m) : Zmod m := of_Z m (Znumtheory.invmod (to_Z x) m).
+(** [smod x 0 = x], matching [Z.modulo], [Z.rem], and RISC-V but not SMT-LIB *)
+Definition smod {m} (x y : Zmod m) := of_Z m (Z.modulo (signed x) (signed y)).
+
+Definition inv {m} (x : Zmod m) : Zmod m.
+  refine (of_small_Z m (Znumtheory.invmod (to_Z x) m) (fun _ => _)).
+  abstract (apply Z.mod_pos_bound, eq_refl).
+Defined.
 
 Definition mdiv {m} (x y : Zmod m) : Zmod m := mul x (inv y).
 
-(**  Powers  *)
+(** ** Powers  *)
 
 Local Definition Private_pow_N {m} (a : Zmod m) n := N.iter_op mul one a n.
 Definition pow {m} (a : Zmod m) z :=
   if Z.ltb z 0 then inv (Private_pow_N a (Z.to_N (Z.opp z))) else Private_pow_N a (Z.to_N z).
 
-(** Bitwise operations *)
+(** ** Bitwise operations *)
 Import Nbitwise.
 
 Definition and {m} (x y : Zmod m) : Zmod m.
@@ -99,7 +111,7 @@ Definition not {m} (x : Zmod m) := of_Z m (Z.lnot (to_Z x)).
 
 Definition abs {m} (x : Zmod m) : Zmod m := if signed x <? 0 then opp x else x.
 
-(** Shifts *)
+(** ** Shifts *)
 
 Definition slu {m} (x : Zmod m) (n : N) := of_Z m (Z.shiftl x n).
 
@@ -110,7 +122,28 @@ Defined.
 
 Definition srs {m} x (n : N) := of_Z m (Z.shiftr (@signed m x) n).
 
-(** Enumerating elements *)
+(** ** Bitvector operations that vary the modulus *)
+
+(** Effective use of the operations defined here with moduli that are not
+   converitble to values requires substantial understanding of dependent types,
+   in particular the equality type, the sigma type, and their eliminators. Even
+   so, many applications are better served by [Z] or by adopting one
+   common-denominator modulus. See the four variants of [skipn_app] and
+   [app_assoc], for a taste of the challenges. *)
+
+Local Notation bitvec n := (Zmod (Pos.shiftl 1 n)). (* n : N *)
+
+Definition app {n m} (a : bitvec n) (b : bitvec m) : bitvec (n+m) :=
+  of_Z _ (Z.lor a (Z.shiftl b n)).
+
+Definition firstn n {w} (a : bitvec w) : bitvec n := of_Z _ a.
+
+Definition skipn n {w} (a : bitvec w) : bitvec (w-n) := of_Z _ (Z.shiftr a n).
+
+Definition extract start pastend {w} (a : bitvec w) : bitvec (pastend-start) :=
+  firstn (pastend-start) (skipn start a).
+
+(** ** Enumerating elements *)
 
 Definition elements m : list (Zmod m) :=
   map (fun i => of_Z m (Z.of_nat i)) (seq 0 (Pos.to_nat m)).
@@ -141,10 +174,10 @@ Example elements_3 : elements 3 = [zero; one; opp one]. Proof. trivial. Qed.
 Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
 Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
 Example invertibles_3 : invertibles 3 = [one; opp one]. Proof. trivial. Qed.
-
 End Zmod.
 
 Notation Zmod := Zmod.Zmod.
+Notation bitvec n := (Zmod (Pos.shiftl 1 n)). (* n : N *)
 
 Module Zstar.
 Import Zmod.
