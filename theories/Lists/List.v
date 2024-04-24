@@ -1621,6 +1621,13 @@ End Fold_Right_Recursor.
      destruct IN as [<-|IN]; auto.
     Qed.
 
+    Lemma filter_rev (l : list A) : filter (rev l) = rev (filter l).
+    Proof.
+      induction l; cbn [rev]; trivial.
+      rewrite filter_app, IHl; cbn [filter].
+      case f; cbn [app]; auto using app_nil_r.
+    Qed.
+
   (** [partition] *)
 
     Fixpoint partition (l:list A) : list A * list A :=
