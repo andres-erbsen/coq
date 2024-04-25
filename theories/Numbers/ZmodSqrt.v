@@ -97,11 +97,13 @@ Module Z.
   Local Open Scope Z_scope.
   Lemma mod2_square a : a^2 mod 2 = a mod 2.
   Proof. Z.div_mod_to_equations. nia. Qed.
-  Lemma divide_pow_same a b : 0 < b -> (a | a^b).
+  Lemma divide_pow_same_r a b : 0 < b -> (a | a^b).
   Proof.
     exists (a^(b-1)).
     rewrite <-(Z.pow_1_r a) at 3; rewrite <-Z.pow_add_r; f_equal; lia.
   Qed.
+  Lemma divide_pow_pow_same a b c : 0 <= b <= c -> (a^b | a^c).
+  Proof. exists (a^(c-b)). rewrite <-Z.pow_add_r by lia. f_equal; lia. Qed.
   Import Znumtheory.
   Lemma mod_prod_mod_factor_l x a b : x mod (a*b) mod a = x mod a.
   Proof. apply mod_mod_divide; exists b; ring. Qed.
@@ -115,6 +117,27 @@ Module Z.
   Qed.
   Lemma gcd_mod_r x m : Z.gcd m (x mod m) = Z.gcd m x.
   Proof. rewrite Z.gcd_comm, Z.gcd_mod_l, Z.gcd_comm; trivial. Qed.
+
+  Lemma odd_square_mod_pow2_1mod8 n a 
+    (Hnn : 0 < n) (H : 0 <= a < 2 ^ n) (Hodd : a mod 2 = 1)
+    (Hr :exists r, r ^ 2 mod 2 ^ n = a mod 2 ^ n) : a mod 8 = 1.
+  Proof.
+    case Hr as [r Hr].
+    rewrite <-(Z.mod_small a (2^n)) by trivial.
+    case (Z.eqb_spec n 1) as [->|].
+    { rewrite Z.mod_small; zify; Z.to_euclidean_division_equations; lia. }
+    case (Z.eqb_spec n 2) as [->|].
+    { rewrite <-Z.mod_pow_l in Hr; set (r mod 2 ^ 2) as r' in *.
+      assert (r' = 0 \/ r' = 1 \/ r' = 2 \/ r' = 3);
+        zify; Z.to_euclidean_division_equations; lia. }
+    rewrite mod_mod_divide by (apply (Z.divide_pow_pow_same 2 3); lia).
+    apply (f_equal (fun x => x mod 8)) in Hr.
+    rewrite 2mod_mod_divide, <-Z.mod_pow_l in Hr by (apply (Z.divide_pow_pow_same 2 3); lia).
+    set (r mod 8) as r' in *.
+    assert (r' = 0 \/ r' = 1 \/ r' = 2 \/ r' = 3 \/ r' = 4 \/ r' = 5 \/ r' = 6 \/ r' = 7)
+      by (zify; Z.to_euclidean_division_equations; lia).
+    clearbody r'; intuition subst r'; cbn in *; (zify; Z.to_euclidean_division_equations; lia).
+  Qed.
 End Z.
 
 Local Open Scope Z_scope.
@@ -205,8 +228,8 @@ Local Notation "∏ xs" := (List.fold_right mul one xs) (at level 40).
 Local Infix "*" := mul.
 Local Infix "/" := div.
 
-(* TODO: move *)
-Definition of_bool (m : positive) (b : bool) : Zstar m := if b then one else opp one.
+(* TODO: move? *)
+Local Definition of_bool (m : positive) (b : bool) : Zstar m := if b then one else opp one.
 Lemma of_bool_negb m b : of_bool m (negb b) = opp (of_bool m b).
 Proof. case b; cbn [of_bool negb]; rewrite ?opp_opp; trivial. Qed.
 Lemma of_bool_1_iff m b : of_bool m b = one <-> b = true \/ m <= 2.
@@ -635,35 +658,6 @@ Proof.
   instantiate (1:=(1 + Z.div2 x) * k + (2 ^ (n - 3) * k ^ 2)). ring.
 Qed.
 
-(* TODO: move*)
-Section __.
-Import ZmodDef.Zmod Zmod.
-Local Ltac bruteforce x a :=
-  rewrite <-?Zmod.eqb_eq, <-?orb_true_iff, <-?andb_true_iff; unfold iff;
-  rewrite <-?implb_true_iff, <-?andb_true_iff;
-  specialize (Zmod.in_elements x); revert x; apply forallb_forall;
-  specialize (Zmod.in_elements a); revert a; apply forallb_forall;
-  vm_cast_no_check (eq_refl true).
-Local Lemma sqrtmod2 (x a : Zmod 2) : pow x 2 = a <-> x = a.
-Proof. bruteforce x a. Qed.
-Local Lemma sqrtmod4 (x a : Zmod 4) :
-  (pow x 2 = a /\ Z.odd a = true) <-> (a = one /\ abs x = one).
-Proof. bruteforce x a. Qed.
-Local Lemma sqrtmod8 (x a : Zmod 8) :
-  (pow x 2 = a /\ Z.odd a = true) <-> (a = one /\ (abs x = one \/ abs x = of_Z _ 3)).
-Proof. bruteforce x a. Qed.
-Lemma odd_square_mod8 z (H : Z.odd (z^2) = true) : z^2 mod 8 = 1.
-Proof.
-  rewrite Z.pow_2_r, Z.odd_mul, Bool.andb_diag in H.
-  rewrite (Zdiv2_odd_eqn z), H. set (Z.div2 _) as k.
-  rewrite (Zdiv2_odd_eqn k); case (Z.odd k).
-  1:eassert (_^2 = 1+(2 * Z.div2 k ^ 2 + 3 * Z.div2 k + 1)*8) as -> by ring.
-  2:eassert (_^2 = 1+(2 * Z.div2 k ^ 2 + 1 * Z.div2 k    )*8) as -> by ring.
-  all : rewrite ?Z.mod_add; trivial; lia.
-Qed.
-End __.
-
-
 Local Lemma Private_sqrtp2''_correct n :
   forall a, a mod 8 = 1 ->
   (ZmodSqrtDef.sqrtp2'' n a)^2 mod 2^Z.of_nat n = a mod 2^Z.of_nat n.
@@ -680,7 +674,7 @@ Proof.
   rewrite Z.mul_comm. eapply lift_sqrt_2; eauto; try lia.
   change 8 with (2^3) in *; apply (f_equal Z.odd) in Ha, IH;
     rewrite ?Zodd_mod, ?mod_mod_divide, ?Z.mod2_square in *;
-    try apply Z.divide_pow_same; try lia. rewrite IH, Ha; trivial.
+    try apply Z.divide_pow_same_r; try lia. rewrite IH, Ha; trivial.
 Qed.
 
 Lemma sqrtp2'_correct n (Hnn : 0 <= n) a (Hodd : a mod 2 = 1)
@@ -688,17 +682,18 @@ Lemma sqrtp2'_correct n (Hnn : 0 <= n) a (Hodd : a mod 2 = 1)
   (ZmodSqrtDef.sqrtp2' n a)^2 mod 2^n = a mod 2^n.
 Proof.
   cbv [ZmodSqrtDef.sqrtp2'].
-  rewrite Z.land_ones by lia.
-  case Ha as [r Hr].
+  rewrite !Z.land_ones by lia; change (2^3) with 8 in *; rename a into a'.
+  case (Z.eqb_spec n 0) as [->|]. { rewrite ?Zmod_1_r; trivial. }
+  pose proof Z.mod_pos_bound a' (2^n) ltac:(lia); set (a' mod 2^n) as a in *.
+  rename Hodd into Hodd'; assert (Hodd : a mod 2 = 1).
+  { subst a. rewrite Znumtheory.mod_mod_divide; trivial. apply Z.divide_pow_same_r; lia. }
+  rename Ha into Ha'; assert (Ha : exists x, x^2 mod 2^n = a mod 2^n).
+  { subst a. rewrite Z.mod_mod by lia; trivial. } clearbody a; clear Ha' Hodd' a'.
   case Z.eqb eqn:E; rewrite <-?not_true_iff_false, Z.eqb_eq in E; cycle 1.
-  { pose proof sqrtmod2 (of_Z _ r) (of_Z _ a).
-    pose proof sqrtmod4 (of_Z _ r) (of_Z _ a).
-    pose proof sqrtmod8 (of_Z _ r) (of_Z _ a).
-    admit. (* no square root exists *) }
-
-  pose proof Private_sqrtp2''_correct (Z.to_nat n) a E.
-  rewrite Z2Nat.id in H by lia; trivial.
-Admitted.
+  { case E; eapply Z.odd_square_mod_pow2_1mod8; eauto; lia. }
+  unshelve epose proof Private_sqrtp2''_correct (Z.to_nat n) a E.
+  rewrite Z2Nat.id, (Z.mod_small a) in * by lia; trivial.
+Qed.
 
 Section WithP.
   Context (p : positive).
@@ -723,7 +718,7 @@ Section WithP.
     rewrite <-mod_mod_divide with (b:=q) in Hsq.
     2: { subst q. rewrite <-(Z.succ_pred (2 ^ _)), Z.pow_succ_r by lia; apply Z.divide_factor_l. }
     unshelve epose proof (IHlgk (a mod q) _ Hsq) as IHlgk'.
-    { rewrite <-Z.gcd_mod_l, mod_mod_divide, Z.gcd_mod_l; trivial. apply Z.divide_pow_same; lia. }
+    { rewrite <-Z.gcd_mod_l, mod_mod_divide, Z.gcd_mod_l; trivial. apply Z.divide_pow_same_r; lia. }
     eapply lift_sqrt; rewrite ?IHlgk', ?Zmod_mod; eauto.
     { subst q. transitivity (p^1); [|eapply Z.pow_le_mono_r]; try lia. }
     { subst q. rewrite <-Z.mod_pow_l, Hp', Z.pow_1_l; trivial; lia. }
@@ -749,7 +744,10 @@ Section WithP.
     cbv [q sqrtpp'] in *; rewrite ?Pos2Z.inj_pow in *.
     destruct (Pos.eqb_spec p 2) as [->|].
     { apply sqrtp2'_correct; trivial; try lia.
-      revert Ha. (* gcd a 2 = 1 -> a mod 2 = 1 *) admit. }
+      (* gcd a 2 = 1 -> a mod 2 = 1 *)
+      revert Ha. rewrite Z.gcd_comm, <-Z.gcd_mod by lia.
+      assert (a mod 2 = 0 \/ a mod 2 = 1) as [-> | ->];
+         cbn; (zify; Z.div_mod_to_equations; lia). }
     unshelve epose proof Private_sqrtpop'_correct _ (Z.to_nat (Z.log2_up k)) a _ _; trivial.
     { pose proof prime_ge_2 p Hp. lia. }
     { case Hsq as [r Hr]. exists (of_Z _ r).

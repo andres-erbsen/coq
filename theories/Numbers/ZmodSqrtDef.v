@@ -55,7 +55,7 @@ Local Fixpoint sqrtp2'' (n : nat) (a : Z) : Z :=
           x + Z.shiftl k (Z.pred (Z.of_nat n))
   end.
 
-Local Definition sqrtp2' (k : Z) (a : Z) : Z :=
+Local Definition sqrtp2' (k : Z) (a : Z) : Z := let a := Z.land a (Z.ones k) in
   if Z.land a (Z.ones 3) =? 1 then sqrtp2'' (Z.to_nat k) a else 0.
 
 Section WithP.
