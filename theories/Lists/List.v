@@ -1968,6 +1968,9 @@ End Fold_Right_Recursor.
       intros. now rewrite length_app, length_map, IHl.
     Qed.
 
+    Lemma list_prod_as_flat_map : forall l l',
+      list_prod l l' = flat_map (fun a => map (pair a) l') l.
+    Proof. induction l; intros; cbn; rewrite ?IHl; trivial. Qed.
   End ListPairs.
 
 
@@ -3859,6 +3862,22 @@ Proof.
   - reflexivity.
   - cbn. rewrite IHn. symmetry. apply repeat_cons.
 Qed.
+
+Lemma fst_list_prod [A B] l l' : map fst (@list_prod A B l l') =
+  flat_map (fun a => repeat a (length l')) l.
+Proof.
+  revert l'; induction l; intros; trivial. cbn.
+  erewrite map_app, map_map, map_ext, map_const; eauto using f_equal2.
+Qed.
+Notation map_fst_list_prod := fst_list_prod.
+
+Lemma snd_list_prod [A B] l l' : map snd (@list_prod A B l l') =
+  concat (repeat l' (length l)).
+Proof.
+  revert l'; induction l; intros; trivial. cbn.
+  erewrite map_app, map_map, map_ext, map_id; eauto using f_equal2.
+Qed.
+Notation map_snd_list_prod := snd_list_prod.
 
 (** Sum of elements of a list of [nat]: [list_sum] *)
 

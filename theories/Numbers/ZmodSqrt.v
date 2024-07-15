@@ -228,8 +228,8 @@ Local Notation "∏ xs" := (List.fold_right mul one xs) (at level 40).
 Local Infix "*" := mul.
 Local Infix "/" := div.
 
-(* TODO: move? *)
-Local Definition of_bool (m : positive) (b : bool) : Zstar m := if b then one else opp one.
+(* TODO: move? Local? *)
+Definition of_bool (m : positive) (b : bool) : Zstar m := if b then one else opp one.
 Lemma of_bool_negb m b : of_bool m (negb b) = opp (of_bool m b).
 Proof. case b; cbn [of_bool negb]; rewrite ?opp_opp; trivial. Qed.
 Lemma of_bool_1_iff m b : of_bool m b = one <-> b = true \/ m <= 2.
@@ -248,6 +248,32 @@ Lemma of_bool_1_iff_ge3 m b (Hm : Pos.le 3 m) : of_bool m b = one <-> b = true.
 Proof. rewrite of_bool_1_iff; intuition (congruence || lia). Qed.
 Lemma of_bool_m1_iff_ge3 m b (Hm : Pos.le 3 m) : of_bool m b = opp one <-> b = false.
 Proof. rewrite of_bool_m1_iff; intuition (congruence || lia). Qed.
+
+Lemma abs_of_bool m b : abs (of_bool m b) = one.
+Proof. cbv [of_bool]; case b; rewrite ?abs_opp, ?abs_1; trivial. Qed.
+Lemma inv_of_bool m b : inv (of_bool m b) = of_bool m b.
+Proof. cbv [of_bool]; case b; rewrite ?inv_opp, ?inv_1; trivial. Qed.
+
+Lemma to_Z_true {m : positive} (H : 2 <= m) : Zmod.to_Z (of_bool m true) = 1.
+Proof. cbv [of_bool]. rewrite to_Zmod_1, Zmod.to_Z_1; trivial. Qed.
+
+Lemma to_Z_false {m : positive} : Zmod.to_Z (of_bool m false) = m-1.
+Proof.
+  case (Pos.eq_dec m 1) as [->|]; trivial.
+  case (Pos.eq_dec m 2) as [->|]; trivial.
+  cbv [of_bool].
+  rewrite to_Zmod_opp, Zmod.to_Z_opp, to_Zmod_1, Zmod.to_Z_1, (Z.mod_diveq (-1)); try lia.
+Qed.
+
+Lemma signed_true {m : positive} (H : 3 <= m) : Zmod.signed (of_bool m true) = 1.
+Proof. cbv [of_bool]. rewrite to_Zmod_1, Zmod.signed_1; trivial. Qed.
+
+Lemma signed_false {m : positive} (H : 2 <= m) : Zmod.signed (of_bool m false) = -1.
+Proof.
+  case (Pos.eq_dec m 2) as [->|]; trivial. cbv [of_bool].
+  rewrite to_Zmod_opp, Zmod.signed_opp, to_Zmod_1, Zmod.signed_1 by lia.
+  rewrite Z.smod_small; trivial. zify; Z.to_euclidean_division_equations; nia.
+Qed.
 
 Local Lemma euler_criterion_subproof  {p : positive} (Hp : prime p) (a : Zstar p) :
   ∏ elements p =
@@ -558,7 +584,7 @@ Proof.
   setoid_rewrite <-Zstar.to_Zmod_1 in H.
   setoid_rewrite <-Zstar.to_Zmod_opp in H.
   setoid_rewrite Zstar.to_Zmod_inj_iff in H.
-  unshelve epose proof @NoDup_incl_length _ _ (map (fun x : Zstar p => Zstar.pow x 2) (Zstar.positives p)) (Zstar.NoDup_elements) _ as X; cbv [incl] in *.
+  unshelve epose proof @NoDup_incl_length _ _ (map (fun x : Zstar p => Zstar.pow x 2) (Zstar.positives p)) (Zstar.NoDup_elements _) _ as X; cbv [incl] in *.
   { intros a _; specialize (H a).
     rewrite Zstar.euler_criterion_existsb, Zstar.of_bool_m1_iff_ge3 in H by trivial.
     rewrite not_false_iff_true, existsb_exists in H; case H as [x [_ H%Zstar.eqb_eq]].
@@ -751,8 +777,9 @@ Section WithP.
     unshelve epose proof Private_sqrtpop'_correct _ (Z.to_nat (Z.log2_up k)) a _ _; trivial.
     { pose proof prime_ge_2 p Hp. lia. }
     { case Hsq as [r Hr]. exists (of_Z _ r).
-      rewrite !to_Z_pow_nonneg, !to_Z_of_Z by lia.
-      admit. (* sqrt mod p iff sqrt mod p^k (given gcd 1 *) }
+      rewrite !to_Z_pow_nonneg, !to_Z_of_Z, Z.mod_pow_l by lia.
+      apply (f_equal (fun x => x mod p)) in Hr.
+      rewrite ?mod_mod_divide in Hr by (apply Z.divide_pow_same_r; lia); lia. }
     rewrite two_power_nat_equiv, Z2Nat.id in * by apply Z.log2_up_nonneg.
     remember (p ^ 2 ^ Z.log2_up k) as q'; cbv zeta in *.
     replace (2 ^ Z.log2_up k) with ((2^Z.log2_up k-k)+k) in * by lia;
@@ -760,7 +787,7 @@ Section WithP.
     { enough (k <= 2^Z.log2_up k) by lia; eapply Z.log2_log2_up_spec; lia. }
     apply (f_equal (fun x => x mod p^k)) in H.
     rewrite !mod_mod_divide in H; trivial; try (eexists; eauto).
-  Admitted.
+  Qed.
 
   Lemma sqrtpp_correct (k : positive) (q := Pos.pow p k) a
      (Hsq : exists x, x^2 mod q = a mod q) : sqrtpp k a ^ 2 mod q = a mod q.
@@ -768,14 +795,26 @@ Section WithP.
     cbv [q sqrtpp] in *; rewrite ?Pos2Z.inj_pow in *.
     case Z.eqb eqn:E; rewrite <-?not_true_iff_false, Z.eqb_eq in E.
     { rewrite Z.pow_0_l, Z.mod_0_l; lia. }
-    edestruct (divide_val p (Z.to_pos (a mod p ^ k))) as [x]; set (v := val _ _) in *.
+    pose proof prime_ge_2 _ Hp.
+    set (v := val _ _) in *.
+    case (proj1 (val_iff v p _ ltac:(lia)) eq_refl) as [[x Hx] Hnx].
     pose proof Z.mod_pos_bound a (p^k) ltac:(lia).
     symmetry; rewrite <-(Zmod_mod a) at 1; symmetry.
     assert (a mod p ^ k = p^v * x) as -> by lia.
-    rewrite <-N.negb_even; case N.even eqn:O;
-      rewrite <-?not_true_iff_false, N.even_spec in O;
-      case O as []; cbv [negb]; cycle 1.
-    { admit. (* no sqrt -- contradict Hsq *) }
+    rewrite <-N.negb_even. case N.even eqn:O;
+      rewrite <-?not_true_iff_false, N.even_spec in O; cbv [negb]; cycle 1.
+      { case (N.Even_or_Odd v) as [|[n Hn]]; [solve [intuition idtac]|clear O].
+        case Hnx; clear Hnx.
+        assert (N.succ v = 2*(n+1))%N as -> by nia.
+        case Hsq as [r Hr].
+
+        assert_succeeds (rename Hx into Hx'; assert (a mod p ^ k = x * p ^ v :> Z) as Hx by lia; clear Hx').
+
+        subst v; rewrite <-Hr in *.
+
+
+      admit. (* no sqrt -- contradict Hsq *) }
+    case O as [].
     rewrite Z.mod_pow_l, Z.pow_mul_l, <-Z.pow_mul_r; try apply N2Z.is_nonneg; try lia.
     assert (N.div2 v * 2 = v) as -> by (zify; Z.div_mod_to_equations; nia).
     rewrite <-Zmult_mod_idemp_r at 1.
@@ -791,3 +830,534 @@ Section WithP.
   Admitted.
 End WithP.
 End Zmod.
+
+Module Reciprosity. Module Zstar.
+Import ZmodDef Znumtheory.
+Import ZmodDef.Zmod Base.Zmod CRT.Zmod ZmodSqrt.Zmod.
+Import ZmodDef.Zstar Base.Zstar CRT.Zstar ZmodSqrt.Zstar.
+Local Notation "∏ xs" := (List.fold_right mul one xs) (at level 40).
+
+Module Z.
+Lemma pow_m1_l : forall n, 0 <= n -> Z.pow (-1) n = if Z.odd n then -1 else 1.
+Proof.
+  eapply Wf_Z.natlike_ind; trivial; intros.
+  rewrite Z.pow_succ_r, Z.odd_succ, <-Z.negb_odd by trivial.
+  case Z.odd in *; cbv [negb]; lia.
+Qed.
+End Z.
+
+Local Lemma mul_signed_subgroups_abs (p q : positive) (Hp : p mod 2 = 1) (Hq : q mod 2 = 1) x y :
+  abs x = abs y :> Zstar (p*q) -> Z.smodulo x p * Z.smodulo x q = Z.smodulo y p * Z.smodulo y q.
+Proof.
+  intros []%eq_abs_iff; [congruence|subst y].
+  rewrite to_Zmod_opp, to_Z_opp.
+  symmetry.
+  rewrite <-Z.smod_mod, mod_mod_divide, Z.smod_mod by (exists q; lia).
+  rewrite <-(Z.smod_mod _ q), mod_mod_divide, Z.smod_mod by (exists p; lia).
+  rewrite <-(Z.smod_idemp_opp _ p), <-(Z.smod_idemp_opp _ q).
+  pose proof Z.smod_pos_bound x p ltac:(lia).
+  pose proof Z.smod_pos_bound x q ltac:(lia).
+  rewrite !(Z.smod_small (- _)); (zify; Z.to_euclidean_division_equations; nia).
+Qed.
+
+Lemma square_prod_positives {p : positive} (prime_p : prime p) (odd_p : 3 <= p) :
+  pow (∏ positives p) 2 = opp (pow (opp one) ((p - 1) / 2)).
+Proof.
+  rewrite Zstar.pow_2_r.
+  pose proof prod_elements_prime prime_p as H.
+  rewrite elements_by_sign in H by lia.
+  rewrite negatives_as_positives_odd in H by auto using odd_prime.
+  apply (f_equal opp) in H; rewrite ?opp_opp in H.
+  rewrite prod_app, prod_opp, prod_rev, (mul_comm (pow _ _)), mul_assoc, <-mul_opp_r in H.
+  rewrite length_rev, length_positives_prime in H by trivial.
+  replace (Z.of_nat (N.to_nat (Pos.pred_N p / 2))) with ((p - 1) / 2) in H by lia.
+  apply (f_equal (fun x => mul x (inv (opp (pow (opp one) ((p - 1) / 2)))))) in H;
+  rewrite <-?mul_assoc, mul_inv_same_r, mul_1_r in H.
+  rewrite mul_1_l, inv_opp, inv_pow_m1 in H; exact H.
+Qed.
+
+Local Lemma prod_snd_abspairs
+  {p q : positive} {prime_p : prime p} {prime_q : prime q} (odd_p : 3 <= p) {odd_q : 3 <= q} {coprime_p_q : Z.gcd p q = 1} :
+  ∏ map snd (list_prod (elements p) (positives q)) =
+  (-1)^((p-1)/2) * (-1)^((q-1)/2*((p-1)/2)) mod q :> Z.
+Proof.
+  rewrite List.snd_list_prod, prod_concat, map_repeat, prod_repeat.
+  rewrite length_elements_prime, N_nat_Z by trivial.
+  assert (Z.of_N (Pos.pred_N p) = 2 * ((p-1)/2)) as ->.
+  { pose proof odd_prime _ prime_p odd_p. (zify; Z.to_euclidean_division_equations; nia). }
+  rewrite pow_mul_r, square_prod_positives, <-mul_m1_l, pow_mul_l, <-pow_mul_r by trivial.
+  rewrite ?to_Zmod_mul, ?to_Zmod_pow, ?to_Zmod_opp, ?to_Zmod_1.
+  rewrite ?to_Z_mul, ?to_Z_pow_nonneg_r, ?to_Z_opp, ?to_Z_1, ?Z.mod_pow_l, ?Zmult_mod_idemp_l, ?Zmult_mod_idemp_r;
+    trivial; Z.to_euclidean_division_equations; nia.
+Qed.
+
+Local Lemma prod_fst_abspairs
+  {p q : positive} {prime_p : prime p} {prime_q : prime q} (odd_p : 3 <= p) {odd_q : 3 <= q} {coprime_p_q : Z.gcd p q = 1} :
+  ∏ map fst (list_prod (elements p) (positives q)) = (-1)^((q-1)/2) mod p :> Z.
+Proof.
+  erewrite List.fst_list_prod, prod_flat_map, map_ext, prod_pow, prod_elements_prime; trivial.
+  2: { intros. instantiate (1:=((q-1)/2)).
+    rewrite prod_repeat, length_positives_prime; trivial; f_equal.
+    zify; Z.to_euclidean_division_equations; nia. }
+  rewrite to_Zmod_pow, to_Zmod_opp, to_Zmod_1.
+  rewrite to_Z_pow_nonneg_r, to_Z_opp, to_Z_1, Z.mod_pow_l; trivial;
+    Z.to_euclidean_division_equations; nia.
+Qed.
+
+Local Notation combine p q := (fun xy : Zstar _ * Zstar _ => Zstar.of_Zmod (Zmod.of_Z (p*q)%positive (combinecong p%positive q%positive (fst xy) (snd xy)))).
+
+Lemma prod_combinecong
+  {p q : positive} {Hp : 3 <= p} {Hq : 3 <= q} {coprime_p_q : Z.gcd p q = 1} (ps : list (Zstar p * Zstar q)) :
+  ∏ (map (combine p q)) ps =
+  Zstar.of_Zmod (Zmod.of_Z (p*q) (combinecong p q (∏ map fst ps) (∏ map snd ps))).
+Proof.
+  induction ps as [|[x y]]; cbn [fst snd map fold_right]; [|rewrite IHps; clear IHps].
+  { erewrite <-combinecong_complete_coprime_nonneg_nonneg with (a:=1);
+    repeat (rewrite ?Z.mod_small, ?to_Zmod_1, ?to_Z_1;
+      trivial; try (Z.to_euclidean_division_equations; nia)). }
+  rewrite ?to_Zmod_mul, ?to_Z_mul.
+  symmetry; erewrite <-combinecong_complete_coprime_nonneg_nonneg with
+    (a:=(combinecong p q x y) * (combinecong p q (∏ map fst ps) (∏ map snd ps)))
+  by (try lia; rewrite <-Zmult_mod_idemp_r, <-Zmult_mod_idemp_l,
+      ?(proj1 (combinecong_sound_coprime _ _ _ _ coprime_p_q)),
+      ?(proj2 (combinecong_sound_coprime _ _ _ _ coprime_p_q)),
+      ?Zmult_mod_idemp_r, ?Zmult_mod_idemp_l, ?Zmod_mod; trivial).
+  rewrite <-Pos2Z.inj_mul, of_Z_mod, of_Z_mul, of_Zmod_mul; trivial;
+  rewrite to_Z_of_Z, Z.gcd_mod_l, ?Pos2Z.inj_mul; apply Z.coprime_mul_r, conj;
+  rewrite <-Z.gcd_mod_l,
+      ?(proj1 (combinecong_sound_coprime _ _ _ _ coprime_p_q)),
+      ?(proj2 (combinecong_sound_coprime _ _ _ _ coprime_p_q)), ?Z.gcd_mod_l;
+  auto using to_Zmod_range.
+Qed.
+
+Lemma abs_prod_abs m xs : @abs m (∏ map abs xs) = abs (∏ xs).
+Proof.
+  induction xs; cbn [fold_right map]; trivial.
+  rewrite <-abs_mul_abs_r, IHxs, abs_mul_abs_abs; trivial.
+Qed.
+
+Lemma abs_prod_positives_semiprime
+  {p q : positive} {prime_p : prime p} {prime_q : prime q} (odd_p : 3 <= p) {odd_q : 3 <= q} {coprime_p_q : Z.gcd p q = 1} :
+  abs (∏ positives (p*q)) = abs (∏ map (combine p q) (list_prod (elements p) (positives q))).
+Proof.
+  intros.
+  pose (absq (x : Zstar (p*q)) := if 0 <? Z.smodulo x q then x else opp x).
+  assert (abs_absq : forall x, abs (absq x) = abs x). {
+    intros. cbv [absq]. destruct Z.ltb; auto using abs_opp. }
+  erewrite <-abs_prod_abs, map_ext, <-map_map, abs_prod_abs by (symmetry; apply abs_absq).
+  f_equal.
+  eapply prod_Permutation .
+  eapply Permutation.NoDup_Permutation_bis; cbv [incl].
+  { eapply NoDup_map_inv with (f:=abs).
+    erewrite map_map, map_ext by (eapply abs_absq).
+    pose proof @NoDup_positives (p*q).
+    assert (map abs (positives (p * q)) = positives (p*q)).
+    { erewrite map_ext_in, map_id; try intros x ?%in_positives; auto using abs_pos. }
+    congruence. }
+  { rewrite ?length_map, ?length_prod, ?length_elements_prime by trivial.
+    pose proof odd_prime p prime_p odd_p as Hp'.
+    pose proof odd_prime q prime_q odd_q as Hq'.
+    assert (p <> q) by (intro; subst; rewrite Z.gcd_diag in *; lia).
+    rewrite length_positives_prime, length_positives_odd, length_elements_semiprime by
+      (trivial; Z.to_euclidean_division_equations; lia).
+    zify. rewrite Nat2Z.inj_div in *. zify. Z.to_euclidean_division_equations. nia. }
+  setoid_rewrite in_map_iff.
+  intros ? (?&[]&?).
+  exists (of_Zmod (of_Z p (absq x)), of_Zmod (of_Z q (absq x))); cbn [fst snd].
+  rewrite in_prod_iff, in_positives.
+  pose proof coprime_to_Zmod x as Hc;
+    rewrite Pos2Z.inj_mul in Hc; apply Z.coprime_mul_r in Hc; case Hc as [].
+  pose proof coprime_to_Zmod (absq x) as Hc;
+    rewrite Pos2Z.inj_mul in Hc; apply Z.coprime_mul_r in Hc; case Hc as [].
+  repeat rewrite ?to_Zmod_of_Zmod, ?to_Z_of_Z, ?signed_of_Z,
+    ?combinecong_mod_l, ?combinecong_mod_r, ?Z.gcd_mod_l; trivial; [].
+  (intuition auto using in_elements); [|]; cycle 1. 
+  { cbv [absq]; case (Z.ltb_spec 0 (Z.smodulo x q)) as []; trivial. 
+    rewrite to_Zmod_opp, to_Z_opp, Pos2Z.inj_mul, <-Z.smod_mod, mod_mod_divide, Z.smod_mod, <-Z.smod_idemp_opp by
+      (exists p; lia).
+    pose proof Z.smod_pos_bound x q ltac:(lia).
+    case (Z.eqb_spec (Z.smodulo x q) 0) as [E|].
+    { enough (Z.gcd x q <> 1) by lia.
+      apply (f_equal (fun x => x mod q)) in E; rewrite Z.mod_smod, Zmod_0_l in E.
+      rewrite <-Z.gcd_mod_l, E, Z.gcd_0_l; lia. }
+    rewrite Z.smod_small; try lia.
+    pose proof odd_prime q prime_q odd_q as Hq'; Z.to_euclidean_division_equations; nia. }
+  erewrite <-combinecong_complete_coprime_nonneg_nonneg; trivial; try lia.
+  rewrite <-Pos2Z.inj_mul, of_Z_mod, of_Z_to_Z, of_Zmod_to_Zmod; trivial.
+Qed.
+
+Lemma add_seq a b c : map (Nat.add a) (seq b c) = seq (a+b) c.
+Proof.
+  revert b; induction c; intros;
+    cbn [seq map]; rewrite ?IHc, ?Nat.add_succ_r; trivial.
+Qed.
+
+Lemma add_seq_0_l a b : map (Nat.add a) (seq 0 b) = seq a b.
+Proof. rewrite add_seq, Nat.add_0_r; trivial. Qed.
+
+Local Open Scope nat_scope.
+Lemma filter_0mod_seq_0_mul : (forall m, m <> 0 -> forall n,
+  filter (fun i => i mod m =? 0) (seq 0 (n * m)) = map (Nat.mul m) (seq 0 n))%nat.
+Proof.
+  intros until n; induction n; intros; trivial; [].
+  rewrite Nat.mul_succ_l, Nat.add_comm, seq_app, filter_app, Nat.add_0_l.
+  case m as [|pred_m] eqn:pred_m_eq at 2; [contradiction|]; cbn [seq filter].
+  rewrite Nat.Div0.mod_0_l, Nat.eqb_refl.
+  erewrite filter_ext_in, filter_false; cycle 1.
+  { intros ??%in_seq; apply Nat.eqb_neq; intros [[]X]%Nat.Div0.mod_divides; nia. }
+  cbn [map "++"]; rewrite Nat.mul_0_r; f_equal.
+  erewrite <-add_seq_0_l, filter_map_swap, filter_ext, IHn; cycle 1.
+  { intros. rewrite <-Nat.Div0.add_mod_idemp_l, Nat.Div0.mod_same, Nat.add_0_l; trivial. }
+  symmetry. rewrite <-add_seq_0_l, 2map_map; apply map_ext; lia.
+Qed.
+
+Lemma filter_cong_seq_mul_mul k m (Hm : m <> 0) : forall n s,
+  filter (fun i => i mod m =? k mod m) (seq (s*m) (n*m)) = map (fun i => i*m + k mod m) (seq s n).
+Proof.
+  induction n; trivial; intros.
+  rewrite Nat.mul_succ_l, Nat.add_comm, seq_app, filter_app, <-Nat.mul_succ_l, IHn.
+  enough (filter _ _ = [_]) as -> by exact eq_refl.
+  pose proof Nat.mod_bound_pos k m ltac:(lia) ltac:(lia).
+  replace m with ((k mod m) + (1 + (m-(k mod m+1)))) at 2 by lia.
+  rewrite ?seq_app, ?filter_app.
+  erewrite filter_ext_in, filter_false, filter_ext_in, filter_true, filter_ext_in, filter_false;
+    trivial; intros i ?%in_seq; try apply Nat.eqb_eq; try apply Nat.eqb_neq; assert (s = i / m);
+      zify; rewrite ?Nat2Z.inj_div, ?Nat2Z.inj_mod in *; Z.to_euclidean_division_equations; nia.
+Qed.
+
+Lemma filter_cong_seq k m (Hm : m <> 0) n s :
+  filter (fun i => i mod m =? k mod m) (seq s n) =
+  filter (fun i : nat => i mod m =? k mod m) (seq s (n mod m)) ++
+  map (Nat.add (s mod m + n mod m + (k mod m + m - s mod m + m - n mod m) mod m))
+      (map (Nat.mul m) (seq (s / m) (n / m))).
+Proof.
+  match goal with |- _ = ?R => set R end.
+  pose proof Nat.mod_bound_pos s m ltac:(lia) ltac:(lia).
+  pose proof Nat.mod_bound_pos n m ltac:(lia) ltac:(lia).
+  rewrite (Nat.div_mod n m), Nat.add_comm, seq_app, (Nat.mul_comm m) by lia.
+  rewrite (Nat.div_mod s m) at 2 by lia.
+  rewrite <-Nat.add_assoc, Nat.add_comm, <-add_seq by lia.
+  rewrite filter_app, filter_map_swap.
+
+  unshelve erewrite (Nat.mul_comm m), (filter_ext _ _ _ (seq (_*m) _)), (filter_cong_seq_mul_mul (k mod m+m-s mod m + m - n mod m)) by lia; shelve_unifiable.
+  { intros i; apply eq_true_iff_eq; rewrite 2Nat.eqb_eq; split; intros R.
+    { rewrite <-R; clear R.
+      apply Nat2Z.inj_iff; repeat rewrite ?Nat2Z.inj_mod, ?Nat2Z.inj_mul, ?Nat2Z.inj_add, ?Nat2Z.inj_sub by lia.
+      repeat match goal with
+             |- context[Z.of_nat ?x] => is_var x; let x' := fresh x "'" in rename x into x';
+             set (Z.of_nat x') as x
+             end.
+      rewrite <-Z.mod_add with (a:=Z.sub _ _) (b:=-2%Z) by lia.
+      replace ((s mod m + n mod m + i) mod m + m - s mod m + m - n mod m + - (2) * m)%Z
+         with ((s mod m + n mod m + i) mod m - (s mod m + n mod m))%Z by lia.
+      rewrite Zminus_mod_idemp_l. f_equal. lia. }
+    { rewrite <-Nat.Div0.add_mod_idemp_r, R by lia; clear R; rewrite !Nat.Div0.add_mod_idemp_r, ?Zmod_mod.
+      apply Nat2Z.inj_iff; repeat rewrite ?Nat2Z.inj_mod, ?Nat2Z.inj_mul, ?Nat2Z.inj_add, ?Nat2Z.inj_sub by lia.
+      repeat match goal with
+             |- context[Z.of_nat ?x] => is_var x; let x' := fresh x "'" in rename x into x';
+             set (Z.of_nat x') as x
+             end.
+      rewrite <-Z.mod_add with (a:=Z.add _ _) (b:=-2%Z) by lia.
+      replace (s mod m + n mod m + (k mod m + m - s mod m + m - n mod m) + - (2) * m)%Z
+         with (k mod m)%Z by lia.
+      apply Z.mod_mod; lia.  } }
+
+  erewrite map_map, map_ext, <-map_map with
+    (f:=Nat.mul m)
+    (g:=Nat.add(s mod m + n mod m + ((k mod m + m - s mod m + m - n mod m) mod m))).
+  2:{ intros i; cbv beta. lia. }
+
+  epose proof fun x => filter_In (fun i : nat => i mod m =? k mod m) x (seq s (n mod m)).
+  setoid_rewrite in_seq in H1.
+
+  exact eq_refl.
+Qed.
+Local Close Scope nat_scope.
+
+Local Lemma coprime_prime_r a p (H : prime p) : Z.gcd a p = 1 <-> a mod p <> 0.
+Proof.
+  pose proof prime_ge_2 p H.
+  rewrite Zgcd_1_rel_prime, Z.mod_divide by lia.
+  split; [|intros; apply rel_prime_sym, prime_rel_prime; trivial].
+  inversion_clear 1; intros X.
+  match goal with H: _ |- _ => case (H _ X (Z.divide_refl _)) as [] end.
+  case (Z.eqb_spec x 0); nia.
+Qed. 
+Local Lemma mul_eq_1_iff a b : a*b = 1 <-> a = 1 /\ b = 1 \/ a = -1 /\ b = -1.
+Proof. pose proof Z.eq_mul_1 a b; nia. Qed.
+Local Lemma filter_filter {A} f g l :
+    @filter A f (filter g l) = filter (fun a => f a && g a) l.
+Proof. induction l; cbn; auto. case g; cbn; case f; cbn; rewrite ?IHl; auto. Qed.
+Lemma seq_mul_r s n c : seq s (n*c) = flat_map (fun i => seq (s + i*c) c) (seq O n).
+Proof.
+  revert s; induction n; intros; rewrite ?flat_map_nil_l, ?Nat.add_0_r; trivial.
+  cbn [Nat.mul]; rewrite Nat.add_comm, seq_app.
+  rewrite seq_S, flat_map_app, IHn; cbn [flat_map]; rewrite app_nil_r; trivial.
+Qed.
+Lemma seq_0_mur n c : seq O (n*c) = flat_map (fun i => seq (i*c) c) (seq O n).
+Proof. apply seq_mul_r. Qed.
+Lemma prod_map_filter {A} {m} (f : A -> Zstar m) g (xs : list A) :
+  ∏ map f (filter g xs) = div (∏ map f xs) (∏ map f (filter (fun x => negb (g x)) xs)).
+Proof.
+  induction xs; cbn [map filter fold_right]; rewrite ?div_same; trivial.
+  case g; cbn [negb map fold_right]; rewrite !IHxs, ?div_mul_l; trivial.
+  rewrite <-!mul_inv_r, ?inv_mul, ?mul_assoc, ?(mul_comm (f a)), ?mul_assoc; f_equal.
+  rewrite <-?mul_assoc, mul_inv_same_r, mul_1_r; trivial.
+Qed.
+Local Lemma to_Zmod_prod {m} xs : @to_Zmod m (∏ xs) = fold_right Zmod.mul Zmod.one (map to_Zmod xs).
+Proof. induction xs; cbn; rewrite ?to_Zmod_1, ?to_Zmod_mul, ?IHxs; auto. Qed.
+Local Lemma of_Zmod_prod {m} xs : Forall (fun x : Zmod m => Z.gcd x m = 1) xs -> @of_Zmod m (fold_right Zmod.mul Zmod.one xs) = ∏ (map of_Zmod xs).
+Proof.
+  intros H. apply wlog_eq_Zstar_3; intro Hm.
+  induction H; cbn [fold_right map]; rewrite ?of_Zmod_1, ?of_Zmod_mul, ?IHForall; auto.
+  clear H IHForall x; induction H0; cbn; rewrite ?to_Z_1, ?Z.gcd_1_l, ?to_Z_mul; try lia.
+  rewrite Z.gcd_mod_l, Z.coprime_mul_l; auto.
+Qed.
+Lemma prod_positives_semiprime
+  {p q : positive} {prime_p : prime p} {prime_q : prime q} (odd_p : 3 <= p) {odd_q : 3 <= q} {coprime_p_q : Z.gcd p q = 1} :
+  Z.smodulo (∏ positives (p*q)) p =  (-1)^((q-1)/2) * Z.smodulo (q^((p-1)/2)) p.
+Proof.
+  assert (tl_seq : forall start len, tl (seq start len) = seq (S start) (len-1)).
+  { destruct len; rewrite ?Nat.sub_1_r; trivial. }
+  assert (
+    map_add_seq: forall len start shift : nat, map (Nat.add shift) (seq start len) = seq (shift + start) len
+    ).
+  { clear; induction len; cbn [seq map]; intros; rewrite ?IHlen, ?Nat.add_succ_r; trivial. }
+  assert (
+    seq_as_0_l : forall len start shift : nat, seq start len = map (Nat.add start) (seq O len)
+    ).
+  { clear -map_add_seq; intros. rewrite map_add_seq, Nat.add_0_r; trivial. }
+  assert (
+div_mul_same_r:
+  forall {m : positive} (x y z : Zstar m), div (mul y x) (mul z x) = div y z
+  ).
+  { clear; intros.
+    repeat rewrite <-?mul_inv_r, ?inv_mul, ?(mul_comm x), <-?mul_assoc.
+    rewrite mul_inv_same_l, mul_1_r; trivial. }
+
+  assert (div_abs1_r : forall m (x y : Zstar m), abs y = one -> div x y = mul x y).
+  { clear; intros m x y H.
+    rewrite <-abs_1 in H; eapply eq_sym, eq_abs_iff in H; case H as [->| ->];
+        rewrite <-?mul_inv_r, ?inv_opp, ?inv_1; trivial. }
+
+
+  pose proof odd_prime p prime_p odd_p as Hp'.
+  pose proof odd_prime q prime_q odd_q as Hq'.
+  rewrite Z.gcd_comm in coprime_p_q.
+
+  assert ((p / 2) < p) by (Z.div_mod_to_equations; nia).
+
+  rewrite <-(Z.smod_smod_divide _ (Pos.mul p q)), smod_unsigned by (exists q; lia).
+
+  (* injecting product into [Zmod p] *)
+  rewrite <-signed_of_Z, <-(to_Zmod_of_Zmod (of_Z _ _)); cycle 1.
+  { rewrite to_Z_of_Z, <-smod_unsigned, <-Z.mod_smod, Z.smod_smod_divide, Z.mod_smod, Z.gcd_mod_l
+      by (exists q; lia).
+    pose proof coprime_to_Zmod (∏ positives (p * q)) as Hc;
+      rewrite Pos2Z.inj_mul in Hc; apply Z.coprime_mul_r in Hc; case Hc as []; trivial. }
+
+  cbv [positives].
+  erewrite to_Zmod_prod, map_map, map_ext_in, map_id; cbv beta.
+  2: { intros ? [_ ?]%filter_In. rewrite to_Zmod_of_Zmod by lia; exact eq_refl. }
+
+  rewrite <-(@of_Z_mod p), <-(Z.mod_smod _ p).
+  rewrite <-(@smod_unsigned (p*q)), Z.smod_smod_divide, Z.mod_smod by (exists q; lia).
+  rewrite <-Zmod.mod_to_Z.
+  assert (forall xs, fold_right Zmod.mul Zmod.one xs mod (p*q)%positive = fold_right Z.mul 1 (map to_Z xs) mod (p*q)%positive) as ->.
+  { clear -odd_p odd_q. induction xs; cbn; rewrite ?to_Z_1, ?to_Z_mul, ?Zmod_mod by lia; trivial.
+    rewrite <-Z.mul_mod_idemp_r, IHxs, Z.mul_mod_idemp_r by lia; trivial. }
+  rewrite mod_mod_divide, of_Z_mod by (exists q; lia).
+  eassert (forall xs, of_Z _ (fold_right Z.mul 1 xs) = fold_right Zmod.mul Zmod.one (map (of_Z _) xs)) as ->.
+  { clear. induction xs; cbn; rewrite ?of_Z_mul, ?IHxs; trivial. }
+
+  rewrite !map_map.
+  rewrite of_Zmod_prod, ?map_map; cycle 1.
+  { eapply Forall_map, Forall_forall; intros ? [? E%Z.eqb_eq]%filter_In.
+    rewrite Pos2Z.inj_mul in E; apply Z.coprime_mul_r in E; case E as [].
+    rewrite to_Z_of_Z, Z.gcd_mod_l by (exists q; lia); trivial. }
+
+  (* inclusion-exclusion principle for [Zmod (p * q)] *)
+  erewrite filter_ext, <-filter_filter; cbv beta; cycle 1.
+  { instantiate (1:=fun x => Z.gcd x p =? 1). instantiate (1:=fun x => Z.gcd x q =? 1).
+    intros x. apply eq_true_iff_eq.
+    rewrite andb_true_iff, Pos2Z.inj_mul, Z.mul_comm, !Z.eqb_eq, Z.coprime_mul_r; lia. }
+
+  cbv [Zmod.positives].
+  rewrite 2 filter_map_swap, ?map_map.
+  rewrite prod_map_filter, filter_filter.
+  erewrite (filter_ext_in (fun k => andb _ _) (fun k => (Z.of_nat k mod q) =? 0)); cycle 1.
+  { intros ? G; apply in_seq in G.
+    eapply eq_true_iff_eq. rewrite andb_true_iff, <-eq_true_not_negb_iff, 3Z.eqb_eq.
+    rewrite !to_Z_of_Z, !Pos2Z.inj_mul, <-!(Z.gcd_mod_l (Z.of_nat a mod (p * q))),
+      !mod_mod_divide, !Z.gcd_mod_l by ((exists q + exists p); lia).
+    rewrite !coprime_prime_r by trivial; intuition try lia.
+    rewrite !Z.mod_divide in * by lia.
+    case (Z.lcm_least p q (Z.of_nat a)) as [d ?]; trivial.
+    rewrite Z.gcd_comm, Z.gcd_1_lcm_mul, Z.abs_eq in coprime_p_q by lia.
+    assert (0 < d) by nia; zify; Z.div_mod_to_equations; nia. }
+
+  eassert ( let f := _ in let n := _ in filter f (seq 1 n) = filter f (seq 0 (S n))) as ->.
+  { cbn [seq filter]. rewrite to_Z_0, Z.gcd_0_l, (proj2 (Z.eqb_neq _ _)); trivial; lia. }
+  eassert (S _ = (Pos.to_nat p * Z.to_nat (q / 2) + S (Z.to_nat (p/2)))%nat)
+    as -> by (Z.div_mod_to_equations; nia); rewrite Nat.mul_comm.
+
+  (* filtering numerator *)
+  erewrite List.filter_ext; cycle 1.
+  { intros k. 
+    rewrite to_Z_of_Z, <-Z.gcd_mod_l, Pos2Z.inj_mul, mod_mod_divide by (exists q; lia).
+    exact eq_refl. }
+
+  rewrite seq_app, seq_mul_r, List.flat_map_concat_map.
+  repeat rewrite <-?List.concat_filter_map, ?map_app, ?concat_map, ?map_map, ?filter_app.
+  cbn [Nat.add].
+
+  erewrite List.map_ext; cycle 1.
+  { intros i.
+    replace (Pos.to_nat p) with (S (Pos.to_nat p-1)) at 2 by lia.
+    cbn [List.seq List.filter].
+    rewrite Nat2Z.inj_mul, positive_nat_Z, Z_mod_mult, Z.gcd_0_l, (proj2 (Z.eqb_neq _ _)) by lia.
+    erewrite filter_ext_in, filter_true; [exact eq_refl|]; intros j ?%in_seq; cbv beta.
+    rewrite Z.gcd_mod_l, Z.gcd_comm.
+    apply Z.eqb_eq, Zgcd_1_rel_prime, prime_rel_prime; trivial.
+    rewrite <-Z.mod_divide, (Z.mod_diveq (Z.of_nat i)); lia. }
+
+  cbn [List.seq List.filter].
+  rewrite Nat2Z.inj_mul, positive_nat_Z, Z_mod_mult, Z.gcd_0_l, (proj2 (Z.eqb_neq _ _)) by lia.
+  erewrite filter_ext_in, filter_true; cycle 1. 
+  { intros j ?%in_seq; cbv beta.
+  rewrite Z.gcd_mod_l, Z.gcd_comm.
+  apply Z.eqb_eq, Zgcd_1_rel_prime, prime_rel_prime; trivial.
+  rewrite <-Z.mod_divide, (Z.mod_diveq (Z.of_nat (Z.to_nat (q/2)))); lia. }
+
+  (* multiplying numerator *)
+  rewrite prod_app, prod_concat, map_map.
+  erewrite map_ext_in, (map_const (opp one)), prod_repeat, length_seq, Z2Nat.id; revgoals.
+  { intros i **.
+    rewrite <-Nat.add_1_l, Nat.add_comm. rewrite <-map_add_seq, map_map.
+    erewrite map_ext_in; cycle 1.
+    { intros k Hk; apply in_seq in Hk.
+      rewrite to_Z_of_Z, <-of_Z_mod, mod_mod_divide by (exists q; lia).
+      rewrite Nat2Z.inj_add, Nat2Z.inj_mul, positive_nat_Z, Z.add_comm.
+      rewrite Z.mod_add, of_Z_mod by lia. exact eq_refl. }
+    rewrite <-map_map. rewrite <-tl_seq.
+    rewrite <-tl_map.
+    eassert (map _ _ = Zmod.elements p) as -> by trivial.
+      pose proof to_Zmod_elements_prime p ltac:(trivial).
+    eassert (map of_Zmod _ = Zstar.elements p) as ->.
+    { erewrite <-to_Zmod_elements_prime, map_map, map_ext_in, map_id; trivial; intros.
+      rewrite of_Zmod_to_Zmod. trivial. }
+    rewrite prod_elements_prime by trivial. exact eq_refl. }
+  { clear -odd_q; Z.div_mod_to_equations; nia. }
+
+  erewrite <-Nat.add_1_r, <-map_add_seq, map_map, map_ext_in; cycle 1.
+  { intros k **; cbv beta. rapply f_equal.
+      rewrite to_Z_of_Z, <-of_Z_mod, mod_mod_divide by (exists q; lia).
+    rewrite Nat2Z.inj_add, Nat2Z.inj_mul, positive_nat_Z, Z.add_comm, Z2Nat.id by
+      (clear -odd_p; Z.div_mod_to_equations; nia).
+    rewrite Z.mod_add, of_Z_mod by lia; trivial. }
+
+  (* filtering denominator *)
+  eassert (filter _ (seq 1 _) = map (Nat.mul (Z.to_nat q)) (seq 1 (Z.to_nat (p/2)))) as ->.
+  { erewrite filter_ext with (g:=fun x => (x mod Pos.to_nat q =? 0 mod Z.to_nat q)%nat); cycle 1.
+    { intros i; eapply eq_true_iff_eq.
+      rewrite Nat.Div0.mod_0_l.
+      rewrite Z.eqb_eq, Nat.eqb_eq, <-Nat2Z.inj_iff, Nat2Z.inj_mod; lia. }
+    rewrite filter_cong_seq by lia.
+    rewrite Nat.Div0.mod_0_l, Nat.add_0_l, !(Nat.mod_small 1), !(Nat.div_small 1) by lia.
+    assert (2 * (Z.to_nat (((p * q)%positive - 1) / 2) mod Z.to_nat q) <= Z.to_nat q)%nat.
+    { repeat rewrite ?Nat2Z.inj_le, ?Nat2Z.inj_mod, ?Nat2Z.inj_mul by lia.
+      rewrite (Z.mod_diveq (p/2)); zify; Z.to_euclidean_division_equations; nia. }
+    erewrite filter_ext_in, filter_false; cycle 1; cbn [List.app].
+    { intros i ?%in_seq; apply Nat.eqb_neq; intros [d X]%Nat.Lcm0.mod_divide.
+      subst i; destruct d; nia. }
+    rewrite map_ext_in with (g:=Nat.add (Z.to_nat q)), map_map; cycle 1.
+    { intros iq [i [? Hi%in_seq]]%in_map_iff; subst iq.
+      repeat rewrite <-?Nat2Z.inj_iff, ?Z2Nat.id, ?Nat2Z.inj_mod, ?Nat2Z.inj_div, ?Nat2Z.inj_add, ?Nat2Z.inj_sub, ?Nat2Z.inj_mul; [|(zify; Z.to_euclidean_division_equations; nia)..].
+      rewrite Zminus_mod_idemp_r.
+      rewrite <-Z.mod_add with (a:=Z.sub _ _) (b:=-2%Z) by lia.
+      eassert (_+-2*q = - (1 + ((p*q)%positive-1)/2)) as -> by lia.
+      rewrite Z_mod_nz_opp_full by
+        (rewrite (Z.mod_diveq (p/2)); zify; Z.to_euclidean_division_equations; nia).
+      enough ((1 + ((p * q)%positive - 1) / 2) mod q = 1 + (((p * q)%positive - 1) / 2) mod q) by lia.
+      rewrite <-Z.add_mod_idemp_r by lia. rewrite Z.mod_small; trivial.
+      rewrite (Z.mod_diveq (p/2)); zify; Z.to_euclidean_division_equations; nia.
+    }
+    rewrite map_ext with (g:=fun i => Nat.mul (Z.to_nat q) (S i)), <-map_map, seq_shift by nia.
+    f_equal. f_equal. repeat rewrite <-?Nat2Z.inj_iff, ?Z2Nat.id, ?Nat2Z.inj_div;
+      zify; Z.to_euclidean_division_equations; nia. }
+
+  (* multiplying denominator *)
+  erewrite map_map, (map_ext_in (fun x : nat => of_Zmod (of_Z p (to_Z _)))); cycle 1.
+  { intros ? L%in_seq.
+    rewrite to_Z_of_Z, <-of_Z_mod, mod_mod_divide by (exists q; lia).
+    rewrite Nat2Z.inj_mul, Z2Nat.id, of_Z_mod, of_Z_mul by lia.
+    rewrite of_Zmod_mul; cycle 1.
+    { rewrite to_Z_of_Z, Z.gcd_mod_l; trivial. }
+    { rewrite to_Z_of_Z, Z.gcd_mod_l.
+      apply Zgcd_1_rel_prime, rel_prime_le_prime; trivial.
+      clear -L; Z.div_mod_to_equations; nia. }
+    exact eq_refl. }
+  rewrite <-map_map with (g := mul _), prod_map_mul, length_map, length_seq.
+
+  (* cancellation *)
+  rewrite div_mul_same_r, Z2Nat.id by (zify; Z.div_mod_to_equations; lia).
+  eassert ((p / 2) = (p-1)/2) as -> by (zify; Z.div_mod_to_equations; lia).
+  eassert ((q / 2) = (q-1)/2) as -> by (zify; Z.div_mod_to_equations; lia).
+  rewrite div_abs1_r by (rewrite euler_criterion_existsb, abs_of_bool; trivial).
+
+  pose proof (@euler_criterion_existsb p (of_Zmod (of_Z _ q)) ltac:(trivial)) as Heul.
+  apply to_Zmod_inj_iff, signed_inj_iff in Heul; revert Heul.
+
+  (* zification *)
+  rewrite ?to_Zmod_mul, ?to_Zmod_pow, ?to_Zmod_opp, ?to_Zmod_1.
+  rewrite signed_mul, ?signed_pow_nonneg_r, ?signed_opp_small, ?signed_1 by
+    (rewrite ?signed_1; zify; Z.div_mod_to_equations; lia).
+  rewrite to_Zmod_of_Zmod by (rewrite to_Z_of_Z, Z.gcd_mod_l; trivial).
+  rewrite signed_of_Z, Z.smod_pow_l.
+  intro Heul.
+  rewrite 2Z.smod_small; trivial.
+
+  all : clear -Heul odd_p odd_q Hp' Hq'; rewrite ?Z.pow_m1_l; repeat (case Z.odd; [|]);
+     try solve [simpl Z.mul; rewrite ?(Z.gcd_opp_l 1), Z.gcd_1_l; trivial];
+     try (zify; Z.to_euclidean_division_equations; nia).
+  all : destruct existsb in *; rewrite ?signed_true, ?signed_false in * by lia.
+  all : rewrite Heul; clear Heul.
+  all : rewrite Z.smod_small; try (zify; Z.to_euclidean_division_equations; nia).
+Qed.
+
+Lemma quadratic_reciprocity'
+  {p q : positive} {prime_p : prime p} {prime_q : prime q} (odd_p : 3 <= p) {odd_q : 3 <= q} {coprime_p_q : Z.gcd p q = 1} :
+  Z.smodulo (q ^ ((p - 1) / 2)) p * Z.smodulo (p ^ ((q - 1) / 2)) q =
+  (-1) ^ ((q - 1) / 2 * ((p - 1) / 2)).
+Proof.
+  pose proof odd_prime p prime_p odd_p as Hp'.
+  pose proof odd_prime q prime_q odd_q as Hq'.
+
+  unshelve epose proof abs_prod_positives_semiprime(p:=p)(q:=q) _ as H; trivial.
+  unshelve erewrite prod_combinecong, prod_snd_abspairs, prod_fst_abspairs in H; trivial.
+  rewrite ?combinecong_mod_l, ?combinecong_mod_r in H.
+  apply mul_signed_subgroups_abs, eq_sym in H; trivial.
+  progress replace (Z.smodulo (∏ positives (p*q)) q) with (Z.smodulo (∏ positives (q*p)) q) in H
+    by (rewrite Pos.mul_comm; trivial).
+  erewrite 2@prod_positives_semiprime in H by (trivial || rewrite Z.gcd_comm; trivial).
+
+  rewrite !to_Zmod_of_Zmod, !to_Z_of_Z, !Pos2Z.inj_mul in H.
+  2: rewrite to_Z_of_Z, Z.gcd_mod_l, Pos2Z.inj_mul; apply Z.coprime_mul_r;
+    split; rewrite <-Z.gcd_mod_l;
+    rewrite (proj1 (combinecong_sound_coprime _ _ _ _ coprime_p_q))
+    || rewrite (proj2 (combinecong_sound_coprime _ _ _ _ coprime_p_q)); rewrite Z.gcd_mod_l.
+  rewrite <-(Z.smod_mod _ p), mod_mod_divide,
+    (proj1 (combinecong_sound_coprime _ _ _ _ coprime_p_q)), Z.smod_mod in H by (exists q; lia).
+  rewrite <-(Z.smod_mod _ q), mod_mod_divide,
+    (proj2 (combinecong_sound_coprime _ _ _ _ coprime_p_q)), Z.smod_mod in H by (exists p; lia).
+
+  rewrite ?(Z.smod_small ((-1)^_)), ?(Z.smod_small ((-1)^_*(-1)^_)) in H.
+  enough ((-1) ^ ((p - 1) / 2) * (-1) ^ ((q - 1) / 2) <> 0) by nia.
+  all : clear -odd_p odd_q Hp' Hq'; rewrite ?Z.pow_m1_l; repeat (case Z.odd; [|]);
+     try solve [simpl Z.mul; rewrite ?(Z.gcd_opp_l 1), Z.gcd_1_l; trivial];
+     try (zify; Z.to_euclidean_division_equations; nia).
+Qed.
+
+End Zstar.
+
+End Reciprosity.

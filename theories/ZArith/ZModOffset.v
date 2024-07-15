@@ -83,6 +83,9 @@ Proof.
   rewrite <-(Z.sub_opp_r a (b ÷ 2)); lia.
 Qed.
 
+Lemma smod_eq a b : b <> 0 -> smodulo a b = a - b * ((a + Z.quot b 2) / b).
+Proof. intros H; pose proof div_smod a _ H; lia. Qed.
+
 Lemma smod_pos_bound a b: 0 < b -> -b <= 2*Z.smodulo a b < b.
 Proof. cbv [Z.omodulo Z.smodulo]; Z.to_euclidean_division_equations; lia. Qed.
 
@@ -173,6 +176,15 @@ Proof. cbv [smodulo]. rewrite <-omod_diveq_iff. Z.to_euclidean_division_equation
 
 Definition smod_diveq_even c a b H := proj1 (smod_diveq_even_iff c a b H).
 
+Lemma smod_smod_divide a b c : (c | b) -> Z.smodulo (Z.smodulo a b) c = Z.smodulo a c.
+Proof.
+  intros [d ->]; eapply smod_inj_mod.
+  destruct (Z.eqb_spec (d*c) 0) as [->|]. { rewrite Z.smod_0_r; trivial. }
+  rewrite smod_eq; trivial.
+  rewrite <-Z.add_opp_r, <-Z.mul_assoc, Z.mul_comm.
+  rewrite <-Z.mul_assoc, Z.mul_comm, <-Z.mul_opp_l, Z.mod_add; nia.
+Qed.
+
 Lemma smod_complement a b h (H : b = 2*h) :
   Z.smodulo a b / h = - (Z.modulo a b / h).
 Proof.
@@ -193,6 +205,20 @@ Lemma smod_idemp_opp x m :
 Proof.
   rewrite <-(Z.sub_0_l x), <-smod_idemp_sub, smod_0_l.
   rewrite (Z.sub_0_l (*workaround*) (smodulo x m)); trivial.
+Qed.
+
+Lemma smod_pow_l a b c : Z.smodulo ((Z.smodulo a c) ^ b) c = Z.smodulo (a ^ b) c.
+Proof.
+  destruct (Z.leb_spec 0 b); cycle 1.
+  { rewrite !Z.pow_neg_r; trivial. }
+  pattern b; eapply natlike_ind; trivial; clear dependent b; intros b H IH.
+  rewrite !Z.pow_succ_r by trivial.
+  symmetry; rewrite <-Z.smod_idemp_mul; symmetry.
+  rewrite <-Z.smod_idemp_mul.
+  symmetry; rewrite <-Z.smod_idemp_mul; symmetry.
+  f_equal.
+  f_equal.
+  rewrite IH, Z.smod_smod; trivial.
 Qed.
 
 End Z.
