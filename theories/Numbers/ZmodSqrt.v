@@ -640,7 +640,7 @@ Proof.
   subst y.
   rewrite cong_iff_0.
   rewrite <-Z.add_opp_l.
-  eassert (-_+_^2=_) as ->. { ring_simplify; ring. }
+  eassert (-_+_^2=_) as ->. { ring_simplify. trivial. }
   rewrite Z_mod_plus_full, Ha.
   eassert (_+_=(c + 2*x * ((c * invmod (-2*x) q) mod q)) * q) as -> by ring.
   rewrite Z.pow_2_r, Zmult_mod_distr_r.
