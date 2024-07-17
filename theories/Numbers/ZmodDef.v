@@ -61,9 +61,9 @@ Definition mul {m} (x y : Zmod m) : Zmod m := of_Z m (to_Z x * to_Z y).
 (** ** Three notions of division *)
 
 Definition udiv {m} (x y : Zmod m) : Zmod m.
-  refine (of_small_Z m (Z.div x y) (fun _ => _)).
+  refine (of_small_Z m (if y =? 0 then m-1 else Z.div x y) (fun _ => _)).
   abstract (pose proof to_Z_range x; pose proof to_Z_range y;
-    zify; Z.to_euclidean_division_equations; nia).
+    destruct Z.eqb; zify; Z.to_euclidean_division_equations; nia).
 Defined.
 
 Definition umod {m} (x y : Zmod m) : Zmod m.
@@ -72,10 +72,9 @@ Definition umod {m} (x y : Zmod m) : Zmod m.
     zify; Z.to_euclidean_division_equations; nia).
 Defined.
 
-Definition sdiv {m} (x y : Zmod m) := of_Z m (Z.div (signed x) (signed y)).
+Definition squot {m} (x y : Zmod m) := of_Z m (if signed y =? 0 then m-1 else Z.quot (signed x) (signed y)).
 
-(** [smod x 0 = x], matching [Z.modulo], [Z.rem], and RISC-V but not SMT-LIB *)
-Definition smod {m} (x y : Zmod m) := of_Z m (Z.modulo (signed x) (signed y)).
+Definition srem {m} (x y : Zmod m) := of_Z m (Z.rem (signed x) (signed y)).
 
 Definition inv {m} (x : Zmod m) : Zmod m.
   refine (of_small_Z m (Znumtheory.invmod (to_Z x) m) (fun _ => _)).

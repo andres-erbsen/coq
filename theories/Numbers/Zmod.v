@@ -259,6 +259,18 @@ Proof. apply to_Z_sub. Qed.
 Lemma signed_opp {m} x : signed (@opp m x) = Z.smodulo (-signed x) m.
 Proof. rewrite <-!smod_unsigned, to_Z_opp, Z.smod_mod, Z.smod_idemp_opp; trivial. Qed.
 
+Lemma to_Z_m1 {m : positive} : @to_Z m (opp one) = m-1.
+Proof.
+  destruct (Pos.eq_dec m 1) as [->|]; trivial.
+  rewrite to_Z_opp, to_Z_1, (Z.mod_diveq (-1)); lia.
+Qed.
+
+Lemma signed_m1 {m : positive} (Hm : 2 <= m) : @signed m (opp one) = -1.
+Proof.
+  destruct (Pos.eq_dec m 2) as [->|]; trivial.
+  rewrite signed_opp, signed_1, Z.smod_small; Z.to_euclidean_division_equations; nia.
+Qed.
+
 Lemma of_Z_opp {m} (x : Z) : of_Z m (Z.opp x) = opp (of_Z m x).
 Proof. cbv [opp]. rewrite <-Z.sub_0_l, of_Z_sub; trivial. Qed.
 
@@ -356,44 +368,44 @@ End WithRing.
 
 (** ** Properties of division operators *)
 
-Lemma to_Z_udiv {m} x y : to_Z (@udiv m x y) = Z.div x y.
-Proof. apply to_Z_of_small_Z. Qed.
+Lemma to_Z_udiv {m} (x y : Zmod m) : y <> 0 :> Z -> to_Z (@udiv m x y) = Z.div x y.
+Proof. cbv [udiv]. rewrite to_Z_of_small_Z. case (unsigned y); trivial; lia. Qed.
 
 Lemma to_Z_umod {m} x y : to_Z (@umod m x y) = Z.modulo x y.
 Proof. apply to_Z_of_small_Z. Qed.
 
-Lemma udiv_0_r {m} x : @udiv m x zero = zero.
-Proof. cbv [udiv]. apply to_Z_inj. rewrite to_Z_of_small_Z, to_Z_0, Zdiv_0_r; trivial. Qed.
+Lemma udiv_0_r {m} x : @udiv m x zero = opp one.
+Proof. cbv [udiv]. apply to_Z_inj. rewrite to_Z_of_small_Z, to_Z_m1; trivial. Qed.
 
 Lemma umod_0_r {m} x : @umod m x zero = x.
 Proof. cbv [umod]. apply to_Z_inj. rewrite to_Z_of_small_Z, to_Z_0, Zmod_0_r; trivial. Qed.
 
-Lemma signed_sdiv {m} x y : @signed m (sdiv x y) = Z.smodulo (signed x / signed y) m.
+Lemma signed_squot {m} x y : signed y <> 0 -> @signed m (squot x y) = Z.smodulo (signed x ÷ signed y) m.
+Proof. cbv [squot]. rewrite signed_of_Z. case (signed y); trivial; congruence. Qed.
+
+Lemma signed_srem {m} x y : @signed m (srem x y) = Z.smodulo (Z.rem (signed x) (signed y)) m.
 Proof. apply signed_of_Z. Qed.
 
-Lemma signed_smod {m} x y : @signed m (smod x y) = Z.smodulo (signed x mod signed y) m.
-Proof. apply signed_of_Z. Qed.
+Lemma squot_0_r {m} x : @squot m x zero = opp one.
+Proof. cbv [squot]. apply to_Z_inj; rewrite to_Z_of_Z, signed_0, to_Z_m1, Z.mod_small; simpl Z.eqb; cbv match; lia. Qed.
 
-Lemma sdiv_0_r {m} x : @sdiv m x zero = zero.
-Proof. cbv [sdiv]. apply to_Z_inj; rewrite to_Z_of_Z, signed_0, Zdiv_0_r; trivial. Qed.
+Lemma smod_0_r {m} x : @srem m x zero = x.
+Proof. cbv [srem]. apply signed_inj. rewrite signed_of_Z, signed_0, Z.rem_0_r_ext, smod_signed; trivial. Qed.
 
-Lemma smod_0_r {m} x : @smod m x zero = x.
-Proof. cbv [smod]. apply signed_inj. rewrite signed_of_Z, signed_0, Zmod_0_r, smod_signed; trivial. Qed.
-
-Lemma signed_sdiv_small {m : positive} x y :
+Lemma signed_squot_small {m : positive} x y (Hm : signed y <> 0) :
   ~ (signed x = -m/2 /\ signed y = -1 /\ m mod 2 = 0) ->
-  @signed m (sdiv x y) = signed x / signed y.
+  @signed m (squot x y) = signed x ÷ signed y.
 Proof.
-  intros H; rewrite signed_sdiv; apply Z.smod_small.
+  intros H; rewrite signed_squot by trivial; apply Z.smod_small.
   pose proof signed_range x; pose proof signed_range y.
   Z.to_euclidean_division_equations; nia.
 Qed.
 
-Lemma sdiv_overflow {m : positive} x y
+Lemma squot_overflow {m : positive} x y
   (Hm : m mod 2 = 0) (Hx : signed x = -m/2) (Hy : signed y = -1) :
-  @sdiv m x y = x.
+  @squot m x y = x.
 Proof.
-  apply signed_inj; rewrite signed_sdiv, Hx, Hy.
+  apply signed_inj; rewrite signed_squot, Hx, Hy by lia.
   rewrite (Z.smod_diveq 1); Z.to_euclidean_division_equations; nia.
 Qed.
 
