@@ -1490,6 +1490,12 @@ Proof.
     auto using Z.le_0_1.
 Qed.
 
+Lemma inj_shiftl_1 n : Z.pos (Pos.shiftl 1 n) = Z.pow 2 (Z.of_N n).
+Proof. rewrite inj_shiftl, Z.shiftl_1_l; trivial. Qed.
+
+Lemma inj_shiftl_1_Z n : 0 <= n -> Z.pos (Pos.shiftl 1 (Z.to_N n)) = Z.pow 2 n.
+Proof. rewrite inj_shiftl_1; f_equal. case n; trivial. cbv; congruence. Qed.
+
 (** Some results concerning Z.neg and Z.pos *)
 
 Lemma inj_neg p q : Z.neg p = Z.neg q -> p = q.

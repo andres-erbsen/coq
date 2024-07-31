@@ -72,7 +72,7 @@ Definition umod {m} (x y : Zmod m) : Zmod m.
     zify; Z.to_euclidean_division_equations; nia).
 Defined.
 
-Definition squot {m} (x y : Zmod m) := of_Z m (if signed y =? 0 then m-1 else Z.quot (signed x) (signed y)).
+Definition squot {m} (x y : Zmod m) := of_Z m (if signed y =? 0 then -1 else Z.quot (signed x) (signed y)).
 
 Definition srem {m} (x y : Zmod m) := of_Z m (Z.rem (signed x) (signed y)).
 
@@ -176,7 +176,12 @@ Example invertibles_3 : invertibles 3 = [one; opp one]. Proof. trivial. Qed.
 End Zmod.
 
 Notation Zmod := Zmod.Zmod.
+
 Notation bitvec n := (Zmod (Pos.shiftl 1 n)). (* n : N *)
+
+Module bitvec.
+  Notation of_Z n z := (Zmod.of_Z (Pos.shiftl 1 n) z).
+End bitvec.
 
 Module Zstar.
 Import Zmod.
