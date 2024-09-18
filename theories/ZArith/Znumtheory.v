@@ -1035,20 +1035,18 @@ Proof.
   apply invmod_coprime, Zgcd_1_rel_prime, rel_prime_sym, prime_rel_prime; auto.
 Qed.
 
-Lemma invmod_1_l' m (H : m <> 0) : invmod 1 m = 1 mod m.
+Lemma invmod_1_l m : invmod 1 m = 1 mod m.
 Proof.
-  pose proof invmod_coprime' 1 m H ltac:(rewrite Z.gcd_1_l; trivial).
+  case (Z.eq_dec m 0) as [->|]; [rewrite Zmod_0_r; trivial|].
+  pose proof invmod_coprime' 1 m n ltac:(rewrite Z.gcd_1_l; trivial).
   rewrite Z.mul_1_r, mod_invmod in *; trivial.
 Qed.
 
-Lemma invmod_1_l m (H : 2 <= m) : invmod 1 m = 1.
+Lemma invmod_mod_l a m : invmod (a mod m) m = invmod a m.
 Proof.
-  pose proof invmod_coprime 1 m H ltac:(rewrite Z.gcd_1_l; trivial).
-  rewrite Z.mul_1_r, mod_invmod in *; trivial.
+  case (Z.eq_dec m 0) as [->|]; [rewrite Zmod_0_r; trivial|].
+  cbv [invmod]. rewrite Zmod_mod; trivial.
 Qed.
-
-Lemma invmod_mod_l a m (Hm : m <> 0) : invmod (a mod m) m = invmod a m.
-Proof. cbv [invmod]. rewrite Zmod_mod; trivial. Qed.
 
 Lemma coprime_invmod a m (H : Z.gcd a m = 1) : Z.gcd (Znumtheory.invmod a m) m = 1.
 Proof.

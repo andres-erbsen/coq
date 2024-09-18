@@ -2,41 +2,49 @@ Require Import NArith ZArith ZModOffset Lia.
 Require Import Coq.Bool.Bool Coq.Lists.List.
 Import ListNotations.
 Local Open Scope Z_scope.
-Local Coercion Z.pos : positive >-> Z.
-Local Coercion N.pos : positive >-> N.
-Local Coercion Z.of_N : N >-> Z.
 
 Module Zmod.
 
-#[projections(primitive)]
-Record Zmod (m : positive) := Private_of_N_value {
-  Private_to_N : N ; Private_range : Bool.Is_true (Private_to_N <? N.pos m)%N }.
-Arguments Private_to_N {m}.
+Definition Private_small z m :=
+  (0 =? m) || negb (Z.sgn z =? -Z.sgn m) && (Z.abs z <? Z.abs m).
 
-Definition to_Z {m} (x : Zmod m) := Z.of_N (Private_to_N x).
-Notation unsigned := to_Z (only parsing).
-Local Coercion to_Z : Zmod >-> Z.
-
-Local Lemma to_Z_range {m} (x : Zmod m) : 0 <= to_Z x < Z.pos m.
+Lemma Private_small_iff z m :
+  Bool.Is_true (Private_small z m) <-> z mod m = z.
 Proof.
-  case x as [x H]; cbv [to_Z Private_to_N].
-  apply Is_true_eq_true, N.ltb_lt, N2Z.inj_lt in H; auto using N2Z.is_nonneg.
+  rewrite Z.mod_id_iff.
+  cbv [Private_small Is_true]. case m as [|m|m], z as [|z|z];
+   cbn; try case Z.ltb eqn:?; lia.
 Qed.
 
-Definition of_small_Z (m : positive) (z : Z) (H : True -> 0 <= z < Z.pos m) : Zmod m.
-  refine (Private_of_N_value m (Z.to_N z) (transparent_true _ (fun _ => _))).
-  abstract (apply Is_true_eq_left, N.ltb_lt; lia).
+#[projections(primitive)]
+Record Zmod (m : Z) := Private_of_Z_value {
+  Private_to_Z : Z ; Private_range : Bool.Is_true (Private_small Private_to_Z m) }.
+Arguments Private_to_Z {m}.
+
+Definition unsigned {m} (x : Zmod m) := Private_to_Z x.
+Notation to_Z := unsigned (only parsing).
+Local Coercion to_Z : Zmod >-> Z.
+
+Local Lemma mod_to_Z {m} (x : Zmod m) : x mod m = x.
+Proof. case x as [x H]; apply Private_small_iff, H. Qed.
+
+Local Lemma unsigned_range {m} (x : Zmod m) : 0 <= x < m \/ m = 0 \/ m < x <= 0.
+Proof. apply Z.mod_id_iff, mod_to_Z. Qed.
+
+Definition of_small_Z (m : Z) (z : Z) (H : True -> z mod m = z) : Zmod m.
+  refine (Private_of_Z_value m z (transparent_true _ (fun _ => _))).
+  abstract apply Private_small_iff, H, I.
 Defined.
 
-Definition of_Z (m : positive) (z : Z) : Zmod m.
-  refine (of_small_Z m (z mod (Z.pos m)) (fun _ => _)).
-  abstract (apply Z.mod_pos_bound, Pos2Z.is_pos).
+Definition of_Z (m : Z) (z : Z) : Zmod m.
+  refine (of_small_Z m (z mod m) (fun _ => _)).
+  abstract apply Zmod_mod.
 Defined.
 
 Definition signed {m} (x : Zmod m) : Z :=
-  if Z.ltb (Z.double x) m then x else x-m.
+  if Z.ltb (Z.double (Z.abs x)) (Z.abs m) then x else x-m.
 
-Notation zero := (Private_of_N_value _ 0 I).
+Definition zero {m} : Zmod m := of_small_Z _ 0 (fun _ => eq_refl).
 
 Definition one {m} := of_Z m 1.
 
@@ -45,40 +53,48 @@ Definition one {m} := of_Z m 1.
 Definition eqb {m} (x y : Zmod m) := Z.eqb (to_Z x) (to_Z y).
 
 Definition add {m} (x y : Zmod m) : Zmod m.
-  refine (let n := x + y in of_small_Z m (if Z.ltb n m then n else n-m) (fun _ => _)).
-  abstract (pose proof to_Z_range x; pose proof to_Z_range y; case (Z.ltb_spec n m); lia).
+  refine (let n := x + y in of_small_Z m (if Z.ltb (Z.abs n) (Z.abs m) then n else n-m) (fun _ => _)).
+  abstract (pose proof unsigned_range x; pose proof unsigned_range y;
+    case Z.ltb eqn:?; rewrite Z.mod_id_iff; lia).
 Defined.
 
 Definition sub {m} (x y : Zmod m) : Zmod m.
-  refine (let z := x - y in of_small_Z m (if Z.leb 0 z then z else z+m) (fun _ => _)).
-  abstract (pose proof to_Z_range x; pose proof to_Z_range y; case (Z.leb_spec 0 z); lia).
+  refine (let z := x - y in of_small_Z m (if Z.sgn z =? -Z.sgn m then z+m else z) (fun _ => _)).
+  abstract (pose proof unsigned_range x; pose proof unsigned_range y;
+    case (Z.eqb_spec (Z.sgn z) (-Z.sgn m)); rewrite Z.mod_id_iff; lia).
 Defined.
 
 Definition opp {m} (x : Zmod m) : Zmod m := sub zero x.
 
-Definition mul {m} (x y : Zmod m) : Zmod m := of_Z m (to_Z x * to_Z y).
+Definition mul {m} (x y : Zmod m) : Zmod m := of_Z m (x * y).
 
 (** ** Three notions of division *)
 
-Definition udiv {m} (x y : Zmod m) : Zmod m.
-  refine (of_small_Z m (if y =? 0 then m-1 else Z.div x y) (fun _ => _)).
-  abstract (pose proof to_Z_range x; pose proof to_Z_range y;
-    destruct Z.eqb; zify; Z.to_euclidean_division_equations; nia).
+Definition udiv {m} (x y : Zmod m) : Zmod m. refine (
+    if Z.eq_dec 0 y then opp one else of_small_Z m (
+    let z := Z.div x y in
+    if Z.sgn z =? -Z.sgn m then z+m else z
+  ) (fun _ => _)).
+  abstract (
+    pose proof unsigned_range x; pose proof unsigned_range y; apply Z.mod_id_iff;
+    cbn [Z.sgn]; destruct Z.eqb eqn:?;
+    Z.to_euclidean_division_equations; nia).
 Defined.
 
 Definition umod {m} (x y : Zmod m) : Zmod m.
   refine (of_small_Z m (Z.modulo (unsigned x) (unsigned y)) (fun _ => _)).
-  abstract (pose proof to_Z_range x; pose proof to_Z_range y;
+  abstract (pose proof unsigned_range x; pose proof unsigned_range y; apply Z.mod_id_iff;
     zify; Z.to_euclidean_division_equations; nia).
 Defined.
 
-Definition squot {m} (x y : Zmod m) := of_Z m (if signed y =? 0 then -1 else Z.quot (signed x) (signed y)).
+Definition squot {m} (x y : Zmod m) :=
+  of_Z m (if signed y =? 0 then -1 else Z.quot (signed x) (signed y)).
 
 Definition srem {m} (x y : Zmod m) := of_Z m (Z.rem (signed x) (signed y)).
 
 Definition inv {m} (x : Zmod m) : Zmod m.
   refine (of_small_Z m (Znumtheory.invmod (to_Z x) m) (fun _ => _)).
-  abstract (apply Z.mod_pos_bound, eq_refl).
+  apply Znumtheory.mod_invmod.
 Defined.
 
 Definition mdiv {m} (x y : Zmod m) : Zmod m := mul x (inv y).
@@ -92,15 +108,9 @@ Definition pow {m} (a : Zmod m) z :=
 (** ** Bitwise operations *)
 Import Nbitwise.
 
-Definition and {m} (x y : Zmod m) : Zmod m.
-  refine (of_small_Z m (N.land (Z.to_N x) (Z.to_N y)) (fun _ => _)).
-  abstract (pose (to_Z_range x); pose (N.land_mono (Z.to_N x) (Z.to_N y)); lia).
-Defined.
+Definition and {m} (x y : Zmod m) := of_Z m (Z.land x y).
 
-Definition ndn {m} (x y : Zmod m) : Zmod m.
-  refine (of_small_Z m (N.ldiff (Z.to_N x) (Z.to_N y)) (fun _ => _)).
-  abstract (pose (to_Z_range x); pose (N.ldiff_mono (Z.to_N x) (Z.to_N y)); lia).
-Defined.
+Definition ndn {m} (x y : Zmod m) := of_Z m (Z.ldiff x y).
 
 Definition or {m} (x y : Zmod m) := of_Z m (Z.lor x y).
 
@@ -108,18 +118,15 @@ Definition xor {m} (x y : Zmod m) := of_Z m (Z.lxor x y).
 
 Definition not {m} (x : Zmod m) := of_Z m (Z.lnot (to_Z x)).
 
-Definition abs {m} (x : Zmod m) : Zmod m := if signed x <? 0 then opp x else x.
+Definition abs {m} (x : Zmod m) := if signed x <? 0 then opp x else x.
 
 (** ** Shifts *)
 
-Definition slu {m} (x : Zmod m) (n : N) := of_Z m (Z.shiftl x n).
+Definition slu {m} (x : Zmod m) n := of_Z m (Z.shiftl x n).
 
-Definition sru {m} (x : Zmod m) (n : N) : Zmod m.
-  refine (of_small_Z m (N.shiftr (Z.to_N x) n) (fun _ => _)).
-  abstract (pose (to_Z_range x); pose (N.shiftr_mono (Z.to_N x) n); lia).
-Defined.
+Definition sru {m} (x : Zmod m) n := of_Z m (Z.shiftr x n).
 
-Definition srs {m} x (n : N) := of_Z m (Z.shiftr (@signed m x) n).
+Definition srs {m} x n := of_Z m (Z.shiftr (@signed m x) n).
 
 (** ** Bitvector operations that vary the modulus *)
 
@@ -130,7 +137,7 @@ Definition srs {m} x (n : N) := of_Z m (Z.shiftr (@signed m x) n).
    common-denominator modulus. See the four variants of [skipn_app] and
    [app_assoc], for a taste of the challenges. *)
 
-Local Notation bitvec n := (Zmod (Pos.shiftl 1 n)). (* n : N *)
+Local Notation bitvec n := (Zmod (2^n)). (* n : N *)
 
 Definition app {n m} (a : bitvec n) (b : bitvec m) : bitvec (n+m) :=
   of_Z _ (Z.lor a (Z.shiftl b n)).
@@ -145,15 +152,15 @@ Definition extract start pastend {w} (a : bitvec w) : bitvec (pastend-start) :=
 (** ** Enumerating elements *)
 
 Definition elements m : list (Zmod m) :=
-  map (fun i => of_Z m (Z.of_nat i)) (seq 0 (Pos.to_nat m)).
+  map (fun i => of_Z m (Z.of_nat i)) (seq 0 (Z.abs_nat m)).
 
-Definition positives (m : positive) :=
-  let h := Z.to_nat ((m-1)/2) in
+Definition positives m :=
+  let h := Z.abs_nat (Z.quot (m-Z.sgn m) 2) in
   map (fun i => of_Z m (Z.of_nat i)) (seq 1 h).
 
-Definition negatives (m : positive) :=
-  let h1 := Z.to_nat ((m-1)/2) in
-  let h2 := Z.to_nat (m/2) in
+Definition negatives m :=
+  let h1 := Z.abs_nat (Z.quot (m-Z.sgn m) 2) in
+  let h2 := Z.abs_nat (Z.quot m 2) in
   map (fun i => of_Z m (Z.of_nat i)) (seq (S h1) h2).
 
 Definition invertibles m : list (Zmod m) :=
@@ -173,14 +180,31 @@ Example elements_3 : elements 3 = [zero; one; opp one]. Proof. trivial. Qed.
 Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
 Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
 Example invertibles_3 : invertibles 3 = [one; opp one]. Proof. trivial. Qed.
+
+
+Example elements_m1 : elements (-1) = [zero]. Proof. trivial. Qed.
+Example positives_m1 : positives (-1) = []. Proof. trivial. Qed.
+Example negatives_m1 : negatives (-1) = []. Proof. trivial. Qed.
+Example invertibles_m1 : invertibles 1 = [zero]. Proof. trivial. Qed.
+
+Example elements_m2 : elements (-2) = [zero; one]. Proof. trivial. Qed.
+Example positives_m2 : positives (-2) = []. Proof. trivial. Qed.
+Example negatives_m2 : negatives (-2) = [one]. Proof. trivial. Qed.
+Example invertibles_m2 : invertibles (-2) = [one]. Proof. trivial. Qed.
+
+Example elements_m3 : elements (-3) = [zero; one; opp one]. Proof. trivial. Qed.
+Example positives_m3 : positives (-3) = [one]. Proof. trivial. Qed.
+Example negatives_m3 : negatives (-3) = [opp one]. Proof. trivial. Qed.
+Example invertibles_m3 : invertibles (-3) = [one; opp one]. Proof. trivial. Qed.
+
 End Zmod.
 
 Notation Zmod := Zmod.Zmod.
 
-Notation bitvec n := (Zmod (Pos.shiftl 1 n)). (* n : N *)
+Notation bitvec n := (Zmod (2^n)).
 
 Module bitvec.
-  Notation of_Z n z := (Zmod.of_Z (Pos.shiftl 1 n) z).
+  Notation of_Z n z := (Zmod.of_Z (2^n) z).
 End bitvec.
 
 Module Zstar.
@@ -188,30 +212,31 @@ Import Zmod.
 Local Coercion to_Z : Zmod >-> Z.
 
 #[projections(primitive)]
-Record Zstar (m : positive) := Private_of_N_value {
-  Private_to_N : N ;
-  Private_range : Is_true ((Private_to_N <? m)%N && (Z.gcd Private_to_N m =? 1)) }.
-Arguments Private_to_N {m}.
+Record Zstar (m : Z) := Private_of_Z_value {
+  Private_to_Z : Z ;
+  Private_range : Is_true (Private_small Private_to_Z m && 
+                             (Z.gcd Private_to_Z m =? 1)) }.
+Arguments Private_to_Z {m}.
 
-Definition to_Zmod {m : positive} (a : Zstar m) : Zmod m.
-  refine (Zmod.of_small_Z m (Private_to_N a) (fun _ => _)).
-  abstract (case a as [a H]; cbv [Private_to_N];
-    apply andb_prop_elim, proj1, Is_true_eq_true, N.ltb_lt in H; lia).
+Definition to_Zmod {m : Z} (a : Zstar m) : Zmod m.
+  refine (Zmod.of_small_Z m (Private_to_Z a) (fun _ => _)).
+  abstract (case a as [a H]; cbv [Private_to_Z];
+    apply Private_small_iff; case Private_small in *; trivial).
 Defined.
 
 Local Coercion to_Zmod : Zstar >-> Zmod.
 
 Definition of_coprime_Zmod {m} (a : Zmod m) (H : True -> Z.gcd a m = 1) : Zstar m.
-  refine (Private_of_N_value m (Z.to_N (Zmod.to_Z a)) (transparent_true _ (fun _ => _))).
-  abstract (case a as [a Ha]; cbv [Zmod.to_Z Zmod.Private_to_N] in *; rewrite ?N2Z.id;
+  refine (Private_of_Z_value m (Zmod.to_Z a) (transparent_true _ (fun _ => _))).
+  abstract (case a as [a Ha]; cbv [Zmod.to_Z Zmod.Private_to_Z] in *; rewrite ?N2Z.id;
     apply andb_prop_intro, conj, Is_true_eq_left, Z.eqb_eq, H, I; trivial).
 Defined.
 
 Definition of_Zmod {m} (x : Zmod m) : Zstar m.
   refine (of_coprime_Zmod (if Z.eqb (Z.gcd x m) 1 then x else Zmod.one) (fun _ => _)).
-  abstract (destruct (Z.eqb_spec (Z.gcd x m) 1); trivial; 
-    cbv [Zmod.to_Z Zmod.Private_to_N Zmod.of_Z Zmod.of_small_Z Zmod.one];
-    rewrite Z2N.id, Z.gcd_mod, Z.gcd_1_r; Z.div_mod_to_equations; lia).
+  abstract (destruct (Z.eqb_spec (Z.gcd x m) 1);
+    cbv [Zmod.to_Z Zmod.Private_to_Z Zmod.of_Z Zmod.of_small_Z Zmod.one];
+    try rewrite Z.gcd_mod_l, Z.gcd_1_l; trivial).
 Defined.
 
 Definition eqb {m} (x y : Zstar m) := Zmod.eqb x y.
@@ -223,12 +248,11 @@ Definition opp {m} (x : Zstar m) : Zstar m := of_Zmod (Zmod.opp x).
 Definition abs {m} (x : Zstar m) : Zstar m := of_Zmod (Zmod.abs x).
 
 Definition mul {m} (a b : Zstar m) : Zstar m.
-  refine (of_coprime_Zmod (Zmod.mul a b) _)%positive.
-  abstract (cbv [Zmod.to_Z Zmod.mul Zmod.of_Z Zmod.of_small_Z]; cbn;
-    rewrite !Z2N.id; try (Z.div_mod_to_equations; lia);
-    rewrite Z.gcd_mod, Z.gcd_comm, Z.coprime_mul_l; trivial;
-    case a as [a Ha]; cbn; apply Is_true_eq_true in Ha;
-    case b as [b Hb]; cbn; apply Is_true_eq_true in Hb; lia).
+  refine (of_coprime_Zmod (Zmod.mul a b) (fun _ => _)).
+  abstract (case a as [a Ha], b as [b Hb] in *;
+    cbv [Zmod.to_Z Zmod.mul Zmod.of_Z Zmod.of_small_Z Zmod.Private_to_Z];
+    rewrite Z.gcd_mod_l, Z.coprime_mul_l;
+    cbn; apply Is_true_eq_true in Ha, Hb; lia).
 Defined.
 
 (**  Inverses and division have a canonical definition  *)
@@ -263,6 +287,18 @@ Example negatives_2 : negatives 2 = [one]. Proof. trivial. Qed.
 Example elements_3 : elements 3 = [one; opp one]. Proof. trivial. Qed.
 Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
 Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
+
+Example elements_m1 : elements (-1) = [of_Zmod Zmod.zero]. Proof. trivial. Qed.
+Example positives_m1 : positives (-1) = []. Proof. trivial. Qed.
+Example negatives_m1 : negatives (-1) = []. Proof. trivial. Qed.
+
+Example elements_m2 : elements (-2) = [one]. Proof. trivial. Qed.
+Example positives_m2 : positives (-2) = []. Proof. trivial. Qed.
+Example negatives_m2 : negatives (-2) = [one]. Proof. trivial. Qed.
+
+Example elements_m3 : elements (-3) = [one; opp one]. Proof. trivial. Qed.
+Example positives_m3 : positives (-3) = [one]. Proof. trivial. Qed.
+Example negatives_m3 : negatives (-3) = [opp one]. Proof. trivial. Qed.
 End Zstar.
 
 Notation Zstar := Zstar.Zstar.

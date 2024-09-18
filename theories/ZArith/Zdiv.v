@@ -734,3 +734,8 @@ Proof.
 Qed.
 
 Arguments Zdiv_eucl_extended : default implicits.
+
+Module Z.
+  Lemma mod_id_iff a b : a mod b = a <-> 0 <= a < b \/ b = 0 \/ b < a <= 0.
+  Proof. zero_or_not b; [|rewrite Z.mod_small_iff]; intuition idtac. Qed.
+End Z.

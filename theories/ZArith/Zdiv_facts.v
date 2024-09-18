@@ -3,6 +3,46 @@ Local Open Scope Z_scope.
 
 Module Z.
 
+Lemma eq_mod_opp m x y : x mod -m = y mod -m <-> x mod m = y mod m.
+Proof.
+  intros.
+  case (Z.eq_dec (x mod m) 0), (Z.eq_dec (y mod m) 0) as [];
+    repeat rewrite ?Z_mod_zero_opp_r, ?Z_mod_nz_opp_r in * by lia.
+  all : (intuition try lia); Z.div_mod_to_equations; lia.
+Qed.
+
+Lemma eq_mod_abs m x y : x mod (Z.abs m) = y mod (Z.abs m) <-> x mod m = y mod m.
+Proof.
+  case (Z.abs_eq_or_opp m) as [->| ->].
+  reflexivity.
+  apply eq_mod_opp.
+Qed.
+
+Lemma mod_mod_opp a b : (a mod - b) mod b = a mod b.
+Proof.
+  replace a with (--a) at 1 by apply Z.opp_involutive.
+  rewrite Zmod_opp_opp, mod_opp_mod_opp; trivial.
+Qed.
+
+Lemma mod_mod_opp' a b : (a mod b) mod - b = a mod - b.
+Proof. rewrite <-(mod_mod_opp a (-b)), Z.opp_involutive; trivial. Qed.
+
+Lemma mod_mod_abs a b : (a mod Z.abs b) mod b = a mod b.
+Proof.
+  case b as []; cbn [Z.abs].
+  { rewrite ?Zmod_0_r; trivial. }
+  { apply Z.mod_mod; inversion 1. }
+  { rewrite <-Pos2Z.opp_pos. apply mod_mod_opp'. }
+Qed.
+
+Lemma mod_mod_abs' a b : (a mod b) mod Z.abs b = a mod Z.abs b.
+Proof.
+  case b as []; cbn [Z.abs].
+  { rewrite ?Zmod_0_r; trivial. }
+  { apply Z.mod_mod; inversion 1. }
+  { rewrite <-Pos2Z.opp_pos. apply mod_mod_opp. }
+Qed.
+
 Lemma cong_mul_cancel_r_coprime a b m (Hm : m <> 0) (Hb : Z.gcd b m = 1)
   (H : (a * b) mod m = 0) : a mod m = 0.
 Proof.
@@ -140,17 +180,5 @@ Proof.
   intros; apply Zgcd_1_rel_prime.
   case (Z.ltb_spec p q) as []; [|symmetry];
     apply rel_prime_le_prime; trivial; lia.
-Qed.
-
-Lemma invmod_1_l' m (H : m <> 0) : invmod 1 m = 1 mod m.
-Proof.
-  pose proof invmod_coprime' 1 m H ltac:(rewrite Z.gcd_1_l; trivial).
-  rewrite Z.mul_1_r, mod_invmod in *; trivial.
-Qed.
-
-Lemma invmod_1_l m (H : 2 <= m) : invmod 1 m = 1.
-Proof.
-  pose proof invmod_coprime 1 m H ltac:(rewrite Z.gcd_1_l; trivial).
-  rewrite Z.mul_1_r, mod_invmod in *; trivial.
 Qed.
 End Z.
