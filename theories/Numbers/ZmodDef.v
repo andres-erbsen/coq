@@ -164,6 +164,7 @@ Definition negatives m :=
   map (fun i => of_Z m (Z.of_nat i)) (seq (S h1) h2).
 
 Definition invertibles m : list (Zmod m) :=
+  if Z.eqb m 0 then [one; opp one] else
   filter (fun x : Zmod _ => Z.eqb (Z.gcd x m) 1) (elements m).
 
 Example elements_1 : elements 1 = [zero]. Proof. trivial. Qed.
@@ -268,6 +269,7 @@ Definition pow {m} (a : Zstar m) z := of_Zmod (Zmod.pow a z).
 (** Enumerating elements *)
 
 Definition elements m : list (Zstar m) :=
+  if Z.eqb m 0 then [one; opp one] else
   map of_Zmod (filter (fun x : Zmod _ => Z.eqb (Z.gcd x m) 1) (Zmod.elements m)).
 
 Definition positives m :=

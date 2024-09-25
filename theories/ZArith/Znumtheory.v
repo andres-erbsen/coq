@@ -1008,8 +1008,20 @@ Definition invmod a m := fst (fst (extgcd (a mod m) m)) mod m.
 
 Lemma invmod_0_l m : invmod 0 m = 0. Proof. reflexivity. Qed.
 
-Lemma invmod_ok a m (Hm : m <> 0) : invmod a m * a mod m = Z.gcd a m mod m.
+Lemma invmod_0_r a : invmod a 0 = Z.sgn a.
 Proof.
+  case (Z.eqb_spec a 0) as [->|nz]; trivial.
+  cbv [invmod]; destruct extgcd as [[u v]g] eqn:H.
+  eapply extgcd_correct in H; case H as [[]]; subst; cbn [fst snd].
+  rewrite ?Zmod_0_r, ?Z.mul_0_r, ?Z.add_0_r in *.
+  rewrite Z.gcd_0_r, <-Z.sgn_abs, (Z.mul_comm u) in H.
+  eapply Z.mul_cancel_l; eauto.
+Qed.
+
+Lemma invmod_ok a m : invmod a m * a mod m = Z.gcd a m mod m.
+Proof.
+  case (Z.eqb_spec m 0) as [->|nz].
+  { rewrite invmod_0_r, ?Zmod_0_r, ?Z.gcd_0_r, <-?Z.sgn_abs; apply Z.mul_comm. }
   cbv [invmod]; destruct extgcd as [[u v]g] eqn:H.
   eapply extgcd_correct in H; case H as [[]]; subst; cbn [fst snd].
   rewrite Z.gcd_mod, Z.gcd_comm in H by trivial; rewrite <-H.
@@ -1018,14 +1030,13 @@ Qed.
 
 Lemma mod_invmod m a : invmod a m mod m = invmod a m. Proof. apply Zmod_mod. Qed.
 
-Lemma invmod_coprime' a m (Hm : m <> 0) (H : Z.gcd a m = 1) : invmod a m * a mod m = 1 mod m.
+Lemma invmod_coprime' a m (H : Z.gcd a m = 1) : invmod a m * a mod m = 1 mod m.
 Proof. rewrite invmod_ok, H; trivial. Qed.
 
 Lemma invmod_coprime a m (Hm : 2 <= m) (H : Z.gcd a m = 1) : invmod a m * a mod m = 1.
 Proof.
   rewrite invmod_coprime', Z.mod_1_l; trivial (*; lia*).
-  - eapply Z.le_succ_l; trivial.
-  - inversion 1; subst; contradiction.
+  eapply Z.le_succ_l; trivial.
 Qed.
 
 Lemma invmod_prime a m (Hm : prime m) (H : a mod m <> 0) : invmod a m * a mod m = 1.
@@ -1037,8 +1048,7 @@ Qed.
 
 Lemma invmod_1_l m : invmod 1 m = 1 mod m.
 Proof.
-  case (Z.eq_dec m 0) as [->|]; [rewrite Zmod_0_r; trivial|].
-  pose proof invmod_coprime' 1 m n ltac:(rewrite Z.gcd_1_l; trivial).
+  pose proof invmod_coprime' 1 m ltac:(rewrite Z.gcd_1_l; trivial).
   rewrite Z.mul_1_r, mod_invmod in *; trivial.
 Qed.
 
