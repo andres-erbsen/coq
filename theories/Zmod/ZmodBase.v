@@ -49,8 +49,9 @@ Notation to_Z_of_Z := unsigned_of_Z (only parsing).
 Lemma of_small_Z_ok {m} n pf : of_small_Z m n pf = of_Z m n.
 Proof. apply to_Z_inj. rewrite to_Z_of_small_Z, to_Z_of_Z, (pf I); trivial. Qed.
 
-Lemma of_Z_to_Z {m} x : of_Z m (to_Z x) = x.
+Lemma of_Z_unsigned {m} x : of_Z m (unsigned x) = x.
 Proof. apply to_Z_inj. rewrite to_Z_of_Z, mod_to_Z; trivial. Qed.
+Notation of_Z_to_Z := of_Z_unsigned (only parsing).
 
 Lemma unsigned_of_Z_id_iff {m} n :
   to_Z (of_Z m n) = n <-> 0 <= n < m \/ m = 0 \/ m < n <= 0.

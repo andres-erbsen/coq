@@ -1,4 +1,4 @@
-Require Export ZArith Lia.
+Require Export ZArith Znumtheory ZModOffset Lia.
 
 Require Export Zmod.ZmodDef.
 Require Export Zmod.ZmodSqrtDef.
