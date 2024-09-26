@@ -137,16 +137,16 @@ Definition srs {m} x n := of_Z m (Z.shiftr (@signed m x) n).
    common-denominator modulus. See the four variants of [skipn_app] and
    [app_assoc], for a taste of the challenges. *)
 
-Local Notation bitvec n := (Zmod (2^n)). (* n : N *)
+Local Notation bits n := (Zmod (2^n)). (* n : N *)
 
-Definition app {n m} (a : bitvec n) (b : bitvec m) : bitvec (n+m) :=
+Definition app {n m} (a : bits n) (b : bits m) : bits (n+m) :=
   of_Z _ (Z.lor a (Z.shiftl b n)).
 
-Definition firstn n {w} (a : bitvec w) : bitvec n := of_Z _ a.
+Definition firstn n {w} (a : bits w) : bits n := of_Z _ a.
 
-Definition skipn n {w} (a : bitvec w) : bitvec (w-n) := of_Z _ (Z.shiftr a n).
+Definition skipn n {w} (a : bits w) : bits (w-n) := of_Z _ (Z.shiftr a n).
 
-Definition extract start pastend {w} (a : bitvec w) : bitvec (pastend-start) :=
+Definition extract start pastend {w} (a : bits w) : bits (pastend-start) :=
   firstn (pastend-start) (skipn start a).
 
 (** ** Enumerating elements *)
@@ -202,11 +202,11 @@ End Zmod.
 
 Notation Zmod := Zmod.Zmod.
 
-Notation bitvec n := (Zmod (2^n)).
+Notation bits n := (Zmod (2^n)).
 
-Module bitvec.
+Module bits.
   Notation of_Z n z := (Zmod.of_Z (2^n) z).
-End bitvec.
+End bits.
 
 Module Zstar.
 Import Zmod.
