@@ -1109,21 +1109,24 @@ Proof.
   case Z.ltb_spec; cbn [Z.b2z]; try (Z.to_euclidean_division_equations; lia).
 Qed.
 
-(* TODO
-Lemma negatives_as_positives_odd (m : positive) (Hm : m mod 2 = 1) :
+Lemma negatives_as_positives_odd m (Hm : m mod 2 = 1) :
   negatives m = map opp (rev (positives m)).
 Proof.
   cbv [positives negatives]; rewrite <-map_rev, map_map.
-  apply nth_error_ext; intros i; rewrite ?nth_error_map, ?nth_error_rev, ?nth_error_seq, ?length_seq.
+  apply nth_error_ext; intros i;
+    rewrite ?nth_error_map, ?nth_error_rev, ?nth_error_seq, ?length_seq.
   repeat match goal with
-         |- context [Nat.ltb ?a ?b] => case (Nat.ltb_spec a b) as []
-         end; trivial; try solve [zify; Z.div_mod_to_equations; lia].
-  cbn [option_map]; f_equal; apply to_Z_inj; rewrite ?to_Z_opp, ?to_Z_of_Z.
-  assert (Z.of_nat (1 + _) = - (Z.of_nat i - (m-1)/2)) as -> by lia.
-  rewrite Znumtheory.mod_opp_mod_opp, Z.mod_small , (Z.mod_diveq (-1));
-    zify; Z.div_mod_to_equations; nia.
+  | |- context [Nat.ltb ?a ?b] => case (Nat.ltb_spec a b) as []
+  | |- context [Z.ltb ?a ?b] => case (Z.ltb_spec a b) as []; cbn [Z.b2z] in *
+  end; trivial; try (Z.to_euclidean_division_equations; lia);
+    cbn [option_map]; f_equal; apply to_Z_inj; rewrite ?to_Z_opp, ?to_Z_of_Z;
+    assert (Z.of_nat (1 + _) = - (Z.of_nat i - (Z.abs m)/2))
+      as -> by (Z.to_euclidean_division_equations; lia);
+    repeat rewrite ?Znumtheory.mod_opp_mod_opp,
+      ?(Z.mod_diveq (-1)), ?(Z.mod_diveq (0)) (* WHY repeat matters?*)
+      by (Z.to_euclidean_division_equations; lia);
+      (Z.to_euclidean_division_equations; lia).
 Qed.
- *)
 
 Lemma invertibles_prime p (H : Znumtheory.prime p) :
   invertibles p = List.tl (elements p).
@@ -2142,8 +2145,7 @@ Proof. cbv [positives]; rewrite in_of_Zmod_filter, <-in_positives; trivial. Qed.
 Lemma in_negatives {m} (x : Zstar m) (Hm : m <> 0) : In x (negatives m) <-> signed x < 0.
 Proof. cbv [negatives]; rewrite in_of_Zmod_filter, <-in_negatives; trivial. Qed.
 
-(* TODO
-Lemma negatives_as_positives_odd (m : positive) (Hm : m mod 2 = 1) :
+Lemma negatives_as_positives_odd m (Hm : m mod 2 = 1) :
   negatives m = map opp (rev (positives m)).
 Proof.
   cbv [positives negatives]; rewrite negatives_as_positives_odd by trivial.
@@ -2155,7 +2157,6 @@ Proof.
   rewrite filter_map_swap; f_equal; f_equal; apply filter_ext.
   intros. rewrite to_Z_opp, Z.gcd_mod_l, Z.gcd_opp_l; trivial.
 Qed.
-*)
 
 Lemma NoDup_positives m : NoDup (positives m).
 Proof.
@@ -2192,32 +2193,34 @@ Proof.
   erewrite <-List.length_map, to_Zmod_elements, Zmod.length_invertibles_prime; trivial.
 Qed.
 
-(* TODO
-Lemma length_positives_length_negatives_odd (m : positive) (Hm : m mod 2 = 1) :
+Lemma length_positives_length_negatives_odd m (Hm : m mod 2 = 1) :
   length (positives m) = length (negatives m).
 Proof.
   rewrite negatives_as_positives_odd by trivial.
   rewrite ?length_map, ?filter_rev, ?length_rev; trivial.
 Qed.
 
-Lemma length_positives_odd {m : positive} (H : m mod 2 = 1) :
+Lemma length_positives_odd {m} (H : m mod 2 = 1) :
   length (positives m) = (length (elements m) / 2)%nat.
 Proof.
-  case (Pos.eqb_spec m 1) as [->|]; trivial.
-  erewrite elements_by_sign, length_app, <-length_positives_length_negatives_odd; trivial.
+  case (Z.eqb_spec m 0) as [->|]; [inversion H|].
+  case (Z.eqb_spec m 1) as [->|]; trivial.
+  case (Z.eqb_spec m (-1)) as [->|]; trivial.
+  erewrite elements_by_sign, length_app, <-length_positives_length_negatives_odd by lia; trivial.
   zify. rewrite Nat2Z.inj_div, Nat2Z.inj_add. zify; Z.to_euclidean_division_equations; lia.
 Qed.
 
-Lemma length_negatives_odd {m : positive} (H : m mod 2 = 1) :
+Lemma length_negatives_odd {m} (H : m mod 2 = 1) :
   length (negatives m) = (length (elements m) / 2)%nat.
 Proof.
   rewrite <-length_positives_length_negatives_odd, length_positives_odd; trivial.
 Qed.
 
-Lemma length_positives_prime (m : positive) (H : prime m) : length (positives m) = N.to_nat (Pos.pred_N m / 2).
+Lemma length_positives_prime {m} (H : prime m) :
+  length (positives m) = Z.to_nat ((m-1) / 2).
 Proof.
   pose proof @prime_ge_2 _ H.
-  case (Pos.eq_dec m 2) as [->|]; trivial.
+  case (Z.eq_dec m 2) as [->|]; trivial.
   pose proof odd_prime _ H ltac:(lia).
   pose proof length_positives_length_negatives_odd m.
   pose proof @length_elements_prime _ H as L.
@@ -2225,33 +2228,38 @@ Proof.
   zify; Z.to_euclidean_division_equations; nia.
 Qed.
 
-Lemma length_negatives_prime (m : positive) (H : prime m) : length (negatives m) = N.to_nat (m / 2).
+Lemma length_negatives_prime {m} (H : prime m) :
+  length (negatives m) = Z.to_nat (m / 2).
 Proof.
   pose proof @prime_ge_2 _ H.
-  case (Pos.eq_dec m 2) as [->|]; trivial.
+  case (Z.eq_dec m 2) as [->|]; trivial.
   pose proof odd_prime _ H ltac:(lia).
   rewrite <-length_positives_length_negatives_odd, length_positives_prime  by trivial.
   zify; Z.to_euclidean_division_equations; nia.
 Qed.
 
 Theorem fermat {m} (a : Zstar m) (H : prime m) : pow a (Z.pred m) = one.
-Proof. erewrite <-euler, length_elements_prime; trivial; f_equal; lia. Qed.
+Proof.
+  pose proof prime_ge_2 _ H.
+  erewrite <-euler, length_elements_prime; trivial; f_equal. lia.
+Qed.
 
 Theorem fermat_inv {m} (a : Zstar m) (H : prime m) : pow a (m-2) = inv a.
 Proof.
+  pose proof prime_ge_2 _ H.
   eapply mul_cancel_l; rewrite mul_inv_same_r.
   erewrite <-pow_succ_r, <-euler, ?length_elements_prime; f_equal; trivial; lia.
 Qed.
 
-Theorem euler_criterion_square {p : positive} (Hp : prime p)
+Theorem euler_criterion_square {p} (Hp : prime p)
   (a sqrt_a : Zstar p) (Ha : pow sqrt_a 2 = a) : pow a ((p-1)/2) = one.
 Proof.
-  apply wlog_eq_Zstar_3; intro Hp'; pose proof odd_prime _ Hp Hp'.
+  pose proof prime_ge_2 _ Hp.
+  eapply wlog_eq_Zstar_3_pos; try lia; intro Hp'; pose proof odd_prime _ Hp Hp'.
   rewrite pow_2_r in Ha.
   rewrite <-(fermat sqrt_a Hp), <-Ha, <-pow_2_r, <-pow_mul_r; f_equal.
   Z.to_euclidean_division_equations; nia.
 Qed.
-*)
 
 End Zstar.
 End Base.
@@ -2450,23 +2458,26 @@ Proof. rewrite 2(mul_comm _ a) in H; apply mul_cancel_l_prime in H; trivial. Qed
 Theorem fermat_nz {m} (a : Zmod m) (Ha : a <> zero) (H : prime m) :
   pow a (Z.pred m) = one.
 Proof.
+  pose proof prime_ge_2 _ H.
   rewrite <-to_Z_inj_iff, to_Z_0 in Ha; pose proof to_Z_range a as Ha'.
   pose proof Zstar.fermat (Zstar.of_Zmod a) H as G%(f_equal Zstar.to_Zmod).
   rewrite Zstar.to_Zmod_pow, Zstar.to_Zmod_of_Zmod, Zstar.to_Zmod_1 in G; trivial.
-  apply Zgcd_1_rel_prime, rel_prime_le_prime; trivial; lia.
+  apply Zgcd_1_rel_prime, rel_prime_le_prime; trivial. lia.
 Qed.
 
 Theorem fermat {m} (a : Zmod m) (H : prime m) : pow a m = a.
 Proof.
+  pose proof prime_ge_2 _ H.
   case (eqb_spec a zero); intros.
   { subst a. rewrite pow_0_l; trivial; lia. }
-  { assert (Z.pos m = Z.succ (Z.pred m)) as -> by lia.
+  { assert (m = Z.succ (Z.pred m)) as E by lia. rewrite E at 3.
     rewrite Zmod.pow_succ_nonneg_r, fermat_nz, mul_1_r; trivial; lia. }
 Qed.
 
 Theorem fermat_inv {m} (a : Zmod m) (Ha : a <> zero) (H : prime m) :
   pow a (m-2) = inv a.
 Proof.
+  pose proof prime_ge_2 _ H.
   pose proof Zstar.fermat_inv (Zstar.of_Zmod a) H as E.
   apply (f_equal Zstar.to_Zmod) in E.
   rewrite Zstar.to_Zmod_pow, Zstar.to_Zmod_inv, Zstar.to_Zmod_of_Zmod in *; trivial.
@@ -2481,18 +2492,17 @@ Import Znumtheory.
 Theorem fermat_nz (m a : Z) (Hm : prime m) (Ha : a mod m <> 0) :
   a^(m-1) mod m = 1.
 Proof.
-  pose proof prime_ge_2 _ Hm; case m as [|m|]; try lia; [].
+  pose proof prime_ge_2 _ Hm.
   apply Zmod.of_Z_nz in Ha; pose (Zmod.fermat_nz (Zmod.of_Z m a) Ha Hm) as E.
   apply (f_equal Zmod.to_Z) in E.
-  rewrite Zmod.to_Z_pow_nonneg, Zmod.to_Z_of_Z, Z.mod_pow_l, Zmod.to_Z_1 in E; lia.
+  rewrite Zmod.to_Z_pow_nonneg_r, Zmod.to_Z_of_Z, Z.mod_pow_l, Zmod.to_Z_1_pos in E; try lia.
 Qed.
 
 Theorem fermat (m a : Z) (Hm : prime m) : a^m mod m = a mod m.
 Proof.
-  pose proof prime_ge_2 _ Hm; case m as [|m|]; try lia; [].
+  pose proof prime_ge_2 _ Hm.
   pose (Zmod.fermat (Zmod.of_Z m a) Hm) as E.
   apply (f_equal Zmod.to_Z) in E.
-  rewrite Zmod.to_Z_pow_nonneg, Zmod.to_Z_of_Z, Z.mod_pow_l in E; lia.
+  rewrite Zmod.to_Z_pow_nonneg_r, Zmod.to_Z_of_Z, Z.mod_pow_l in E; lia.
 Qed.
 End Z.
-
