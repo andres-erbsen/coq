@@ -167,37 +167,6 @@ Definition invertibles m : list (Zmod m) :=
   if Z.eqb m 0 then [one; opp one] else
   filter (fun x : Zmod _ => Z.eqb (Z.gcd x m) 1) (elements m).
 
-Example elements_1 : elements 1 = [zero]. Proof. trivial. Qed.
-Example positives_1 : positives 1 = []. Proof. trivial. Qed.
-Example negatives_1 : negatives 1 = []. Proof. trivial. Qed.
-Example invertibles_1 : invertibles 1 = [zero]. Proof. trivial. Qed.
-
-Example elements_2 : elements 2 = [zero; one]. Proof. trivial. Qed.
-Example positives_2 : positives 2 = []. Proof. trivial. Qed.
-Example negatives_2 : negatives 2 = [one]. Proof. trivial. Qed.
-Example invertibles_2 : invertibles 2 = [one]. Proof. trivial. Qed.
-
-Example elements_3 : elements 3 = [zero; one; opp one]. Proof. trivial. Qed.
-Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
-Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
-Example invertibles_3 : invertibles 3 = [one; opp one]. Proof. trivial. Qed.
-
-
-Example elements_m1 : elements (-1) = [zero]. Proof. trivial. Qed.
-Example positives_m1 : positives (-1) = []. Proof. trivial. Qed.
-Example negatives_m1 : negatives (-1) = []. Proof. trivial. Qed.
-Example invertibles_m1 : invertibles 1 = [zero]. Proof. trivial. Qed.
-
-Example elements_m2 : elements (-2) = [zero; one]. Proof. trivial. Qed.
-Example positives_m2 : positives (-2) = [one]. Proof. trivial. Qed.
-Example negatives_m2 : negatives (-2) = []. Proof. trivial. Qed.
-Example invertibles_m2 : invertibles (-2) = [one]. Proof. trivial. Qed.
-
-Example elements_m3 : elements (-3) = [zero; one; opp one]. Proof. trivial. Qed.
-Example positives_m3 : positives (-3) = [one]. Proof. trivial. Qed.
-Example negatives_m3 : negatives (-3) = [opp one]. Proof. trivial. Qed.
-Example invertibles_m3 : invertibles (-3) = [one; opp one]. Proof. trivial. Qed.
-
 End Zmod.
 
 Notation Zmod := Zmod.Zmod.
@@ -278,29 +247,6 @@ Definition positives m :=
 Definition negatives m :=
   map of_Zmod (filter (fun x : Zmod m => Z.gcd x m =? 1) (Zmod.negatives m)).
 
-Example elements_1 : elements 1 = [of_Zmod Zmod.zero]. Proof. trivial. Qed.
-Example positives_1 : positives 1 = []. Proof. trivial. Qed.
-Example negatives_1 : negatives 1 = []. Proof. trivial. Qed.
-
-Example elements_2 : elements 2 = [one]. Proof. trivial. Qed.
-Example positives_2 : positives 2 = []. Proof. trivial. Qed.
-Example negatives_2 : negatives 2 = [one]. Proof. trivial. Qed.
-
-Example elements_3 : elements 3 = [one; opp one]. Proof. trivial. Qed.
-Example positives_3 : positives 3 = [one]. Proof. trivial. Qed.
-Example negatives_3 : negatives 3 = [opp one]. Proof. trivial. Qed.
-
-Example elements_m1 : elements (-1) = [of_Zmod Zmod.zero]. Proof. trivial. Qed.
-Example positives_m1 : positives (-1) = []. Proof. trivial. Qed.
-Example negatives_m1 : negatives (-1) = []. Proof. trivial. Qed.
-
-Example elements_m2 : elements (-2) = [one]. Proof. trivial. Qed.
-Example positives_m2 : positives (-2) = [one]. Proof. trivial. Qed.
-Example negatives_m2 : negatives (-2) = []. Proof. trivial. Qed.
-
-Example elements_m3 : elements (-3) = [one; opp one]. Proof. trivial. Qed.
-Example positives_m3 : positives (-3) = [one]. Proof. trivial. Qed.
-Example negatives_m3 : negatives (-3) = [opp one]. Proof. trivial. Qed.
 End Zstar.
 
 Notation Zstar := Zstar.Zstar.

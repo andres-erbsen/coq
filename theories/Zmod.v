@@ -1,3 +1,5 @@
+Require Export ZArith Lia.
+
 Require Export Zmod.ZmodDef.
 Require Export Zmod.ZmodSqrtDef.
 
