@@ -44,7 +44,7 @@ Defined.
 Definition signed {m} (x : Zmod m) : Z :=
   if Z.ltb (Z.double (Z.abs x)) (Z.abs m) then x else x-m.
 
-Definition zero {m} : Zmod m := of_small_Z _ 0 (fun _ => eq_refl).
+Definition zero {m} := of_Z m 0.
 
 Definition one {m} := of_Z m 1.
 
@@ -155,13 +155,13 @@ Definition elements m : list (Zmod m) :=
   map (fun i => of_Z m (Z.of_nat i)) (seq 0 (Z.abs_nat m)).
 
 Definition positives m :=
-  let h := Z.abs_nat (Z.quot (m-Z.sgn m) 2) in
-  map (fun i => of_Z m (Z.of_nat i)) (seq 1 h).
+  let p := (Z.abs m - Z.b2z ((0 <? m)))/2 in
+  map (fun i => of_Z m (Z.of_nat i)) (seq 1 (Z.to_nat p)).
 
 Definition negatives m :=
-  let h1 := Z.abs_nat (Z.quot (m-Z.sgn m) 2) in
-  let h2 := Z.abs_nat (Z.quot m 2) in
-  map (fun i => of_Z m (Z.of_nat i)) (seq (S h1) h2).
+  let p := (Z.abs m - Z.b2z ((0 <? m)))/2 in
+  let r := Z.abs m - 1 - p in
+  map (fun i => of_Z m (Z.of_nat i)) (seq (S (Z.to_nat p)) (Z.to_nat r)).
 
 Definition invertibles m : list (Zmod m) :=
   if Z.eqb m 0 then [one; opp one] else
@@ -189,8 +189,8 @@ Example negatives_m1 : negatives (-1) = []. Proof. trivial. Qed.
 Example invertibles_m1 : invertibles 1 = [zero]. Proof. trivial. Qed.
 
 Example elements_m2 : elements (-2) = [zero; one]. Proof. trivial. Qed.
-Example positives_m2 : positives (-2) = []. Proof. trivial. Qed.
-Example negatives_m2 : negatives (-2) = [one]. Proof. trivial. Qed.
+Example positives_m2 : positives (-2) = [one]. Proof. trivial. Qed.
+Example negatives_m2 : negatives (-2) = []. Proof. trivial. Qed.
 Example invertibles_m2 : invertibles (-2) = [one]. Proof. trivial. Qed.
 
 Example elements_m3 : elements (-3) = [zero; one; opp one]. Proof. trivial. Qed.
@@ -295,8 +295,8 @@ Example positives_m1 : positives (-1) = []. Proof. trivial. Qed.
 Example negatives_m1 : negatives (-1) = []. Proof. trivial. Qed.
 
 Example elements_m2 : elements (-2) = [one]. Proof. trivial. Qed.
-Example positives_m2 : positives (-2) = []. Proof. trivial. Qed.
-Example negatives_m2 : negatives (-2) = [one]. Proof. trivial. Qed.
+Example positives_m2 : positives (-2) = [one]. Proof. trivial. Qed.
+Example negatives_m2 : negatives (-2) = []. Proof. trivial. Qed.
 
 Example elements_m3 : elements (-3) = [one; opp one]. Proof. trivial. Qed.
 Example positives_m3 : positives (-3) = [one]. Proof. trivial. Qed.
