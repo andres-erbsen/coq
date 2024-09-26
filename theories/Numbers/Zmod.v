@@ -224,7 +224,7 @@ Lemma signed_pos_iff {m} (x : Zmod m) :
 Proof. pose proof unsigned_range x; pose proof signed_cases x; lia. Qed.
 
 Lemma signed_nonneg_iff {m} (x : Zmod m) :
-  0 <= signed x <-> 0 <= 2*x < m \/ m = 0 /\ 0 <= x \/ (m < 0 /\ 2*x <= m \/ 0 = x).
+  0 <= signed x <-> 0 <= 2*x < m \/ m = 0 /\ 0 <= x \/ (m < 0 /\ (2*x <= m \/ 0 = x)).
 Proof. pose proof unsigned_range x; pose proof signed_cases x; lia. Qed.
 
 Lemma signed_small_iff {m} (x : Zmod m) (Hm : 0 < m) :
@@ -2506,3 +2506,4 @@ Proof.
   rewrite Zmod.to_Z_pow_nonneg_r, Zmod.to_Z_of_Z, Z.mod_pow_l in E; lia.
 Qed.
 End Z.
+End Inv.

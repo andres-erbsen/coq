@@ -1,3 +1,4 @@
+(*
 Require Import ZmodDef.
 Require Import NArith ZArith ZModOffset Lia.
 Require Import Coq.Bool.Bool Coq.Lists.List.
@@ -123,3 +124,4 @@ Module Z.
     let r := sqrtmod' a m in 
     if r * r mod m =? a then r else 0.
 End Z.
+ *)

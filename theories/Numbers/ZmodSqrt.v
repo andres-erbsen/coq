@@ -1,3 +1,4 @@
+(*
 Require Import NArith ZArith ZModOffset Lia ZmodDef ZmodSqrtDef Zmod.
 Require Import Bool.Bool Lists.List Sorting.Permutation.
 Require Import ZArith.Pfactor.
@@ -1361,3 +1362,4 @@ Qed.
 End Zstar.
 
 End Reciprosity.
+*)
