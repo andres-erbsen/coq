@@ -1,4 +1,4 @@
-Require Import Nbitwise BinInt Lia Btauto. Local Open Scope Z_scope.
+Require Import BinInt Lia Btauto. Local Open Scope Z_scope.
 Import (ltac.notations) BinInt.Z.
 
 Module Z.
@@ -175,7 +175,7 @@ Qed.
 Lemma sub_2landn_lxor x y : 2*(x.&.~y) - x.^y = x - y.
 Proof. rewrite <-sub_lor_l_same_r, <-sub_lor_land. pose (add_lor_land x y). lia. Qed.
 
-Lemma testbit_neqb0 n (Hn : 0 <= n) x (Hx : -2^n <= x < 2^n) :
+Lemma testbit_or_opp_high n (Hn : 0 <= n) x (Hx : -2^n <= x < 2^n) :
   Z.testbit (Z.lor x (- x)) n = negb (Z.eqb x 0).
 Proof.
   destruct (Z.eqb_spec x 0); cbn [negb].

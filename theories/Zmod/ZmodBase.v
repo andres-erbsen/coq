@@ -678,8 +678,6 @@ Lemma mul_inv_r {m} x y : mul x (@inv m y) = mdiv x y.
 Proof. rewrite mul_comm, mul_inv_l; trivial. Qed.
 
 (** ** Bitwise operations *)
-Import Nbitwise.
-
 Lemma unsigned_and {m} x y : @to_Z m (and x y) = Z.land x y mod m.
 Proof. apply to_Z_of_Z. Qed.
 Notation to_Z_and := unsigned_and (only parsing).
@@ -690,7 +688,7 @@ Proof.
   case (Z.eqb_spec m 0) as [->|]; auto using Zmod_0_r.
   apply Z.mod_small.
   pose proof to_Z_range x; pose proof to_Z_range y.
-  pose proof N.land_mono (Z.to_N x) (Z.to_N y).
+  pose proof N.land_le_l (Z.to_N x) (Z.to_N y).
   pose proof N2Z.inj_land (Z.to_N x) (Z.to_N y).
   rewrite 2Z2N.id in *; try apply to_Z_range; intuition try lia.
 Qed.
@@ -706,7 +704,7 @@ Proof.
   case (Z.eqb_spec m 0) as [->|]; auto using Zmod_0_r.
   apply Z.mod_small.
   pose proof to_Z_range x; pose proof to_Z_range y.
-  pose proof N.ldiff_mono (Z.to_N x) (Z.to_N y).
+  pose proof N.ldiff_le_l (Z.to_N x) (Z.to_N y).
   pose proof N2Z.inj_ldiff (Z.to_N x) (Z.to_N y).
   rewrite 2Z2N.id in *; try apply to_Z_range; intuition try lia.
 Qed.

@@ -106,8 +106,6 @@ Definition pow {m} (a : Zmod m) z :=
   if Z.ltb z 0 then inv (Private_pow_N a (Z.to_N (Z.opp z))) else Private_pow_N a (Z.to_N z).
 
 (** ** Bitwise operations *)
-Import Nbitwise.
-
 Definition and {m} (x y : Zmod m) := of_Z m (Z.land x y).
 
 Definition ndn {m} (x y : Zmod m) := of_Z m (Z.ldiff x y).
