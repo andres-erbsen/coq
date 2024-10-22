@@ -36,12 +36,6 @@ Definition IsHSet (X : Type) : Prop
 Definition IsHOneType (X : Type) : Prop
   := forall (x y : X) (p q : x = y) (r s : p = q), r = s.
 
-Definition false_hprop : IsHProp False :=
-  fun p => match p with end.
-
-Definition true_hprop : IsHProp True :=
-  fun p q => match p, q with I, I => eq_refl end.
-
 (* Homotopy propositions are stable by conjunction, but not by disjunction,
    which can have a proof by the left and another proof by the right. *)
 Lemma and_hprop : forall P Q : Prop,
@@ -94,3 +88,9 @@ Proof.
   rewrite <- eq_sym_involutive. rewrite <- (eq_sym_involutive r).
   rewrite H0. reflexivity.
 Qed.
+
+Definition false_hprop : IsHProp False :=
+  fun p => match p with end.
+
+Definition true_hprop : IsHProp True :=
+  fun p q => match p, q with I, I => eq_refl end.

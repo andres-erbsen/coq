@@ -79,7 +79,7 @@ Lemma of_Z_mod {m} x : of_Z m (x mod m) = of_Z m x.
 Proof. apply to_Z_inj. rewrite ?to_Z_of_Z, ?Zmod_mod; trivial. Qed.
 
 Lemma of_Z_mod_abs {m} x : of_Z m (x mod (Z.abs m)) = of_Z m x.
-Proof. rewrite <-of_Z_mod, Z.mod_mod_abs, of_Z_mod; trivial. Qed.
+Proof. rewrite <-of_Z_mod, Z.mod_mod_abs_r, of_Z_mod; trivial. Qed.
 
 Lemma of_Z_inj {m} x y : of_Z m x = of_Z m y <-> x mod m = y mod m.
 Proof.
@@ -450,9 +450,9 @@ Lemma of_Z_m1 {m} : @of_Z m (-1) = opp one.
 Proof.
   rewrite <-of_Z_to_Z.
   apply of_Z_inj_cases; split; intros; subst; trivial; subst m'.
-  rewrite to_Z_opp, Z.mod_mod_abs'.
+  rewrite to_Z_opp, Z.mod_abs_r_mod.
   cbv [one]; change (-1) with (-(1)).
-  rewrite to_Z_of_Z, 2 Z.mod_opp_l_nz; rewrite ?Z.mod_mod_abs', ?Z.mod_small; try lia.
+  rewrite to_Z_of_Z, 2 Z.mod_opp_l_nz; rewrite ?Z.mod_abs_r_mod, ?Z.mod_small; try lia.
 Qed.
 
 Lemma signed_m1 {m} (Hm : 2 <= m) : @signed m (opp one) = -1.
@@ -1042,7 +1042,7 @@ Proof.
   eapply List.NoDup_map_inv with (f := fun x : Zmod m => Z.to_nat (x mod (Z.abs m))).
   erewrite List.map_map, List.map_ext_in, List.map_id; trivial using List.seq_NoDup.
   intros a Ha. apply List.in_seq in Ha; cbn [Nat.add] in Ha.
-  rewrite to_Z_of_Z, Z.mod_mod_abs', Z.mod_small, Nat2Z.id; lia.
+  rewrite to_Z_of_Z, Z.mod_abs_r_mod, Z.mod_small, Nat2Z.id; lia.
 Qed.
 
 Example elements_0 : elements 0 = []. Proof. trivial. Qed.

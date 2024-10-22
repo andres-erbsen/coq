@@ -459,7 +459,7 @@ Proof. apply Z.testbit_of_N'. Qed.
 
 End Z2N.
 
-Module Export Extra.
+Module Export MoreN2Z.
 Module N2Z.
 
 Lemma inj_shiftl: forall x y, Z.of_N (N.shiftl x y) = Z.shiftl (Z.of_N x) (Z.of_N y).
@@ -497,7 +497,7 @@ Proof.
 Qed.
 
 End N2Z.
-End Extra.
+End MoreN2Z.
 
 
 Module Zabs2N.

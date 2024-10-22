@@ -8,7 +8,7 @@
 (*         *     (see LICENSE file for the text of the license)         *)
 (************************************************************************)
 
-Require Export Coq.Logic.HLevelsDef.
+Require Export Coq.Logic.HLevelsBase.
 
 (* It is rarely possible to prove that a type is a homotopy proposition
    without funext, so we assume it here. *)

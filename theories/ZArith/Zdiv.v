@@ -794,4 +794,29 @@ Proof.
   rewrite <-Z.mod_add with (b:=1) by trivial.
   change 0 with (0 mod b); f_equal; ring.
 Qed.
+
+Lemma mod_mod_opp_r a b : (a mod - b) mod b = a mod b.
+Proof.
+  replace a with (--a) at 1 by apply Z.opp_involutive.
+  rewrite Zmod_opp_opp, Z.mod_opp_mod_opp; trivial.
+Qed.
+
+Lemma mod_opp_r_mod a b : (a mod b) mod - b = a mod - b.
+Proof. rewrite <-(mod_mod_opp_r a (-b)), Z.opp_involutive; trivial. Qed.
+
+Lemma mod_mod_abs_r a b : (a mod Z.abs b) mod b = a mod b.
+Proof.
+  case b as []; cbn [Z.abs].
+  { rewrite ?Zmod_0_r; trivial. }
+  { apply Z.mod_mod; inversion 1. }
+  { rewrite <-Pos2Z.opp_pos. apply mod_opp_r_mod. }
+Qed.
+
+Lemma mod_abs_r_mod a b : (a mod b) mod Z.abs b = a mod Z.abs b.
+Proof.
+  case b as []; cbn [Z.abs].
+  { rewrite ?Zmod_0_r; trivial. }
+  { apply Z.mod_mod; inversion 1. }
+  { rewrite <-Pos2Z.opp_pos. apply mod_mod_opp_r. }
+Qed.
 End Z.

@@ -85,6 +85,7 @@ Proof.
   match goal with z0 : Z, z1 : Z |- _ => exists z0, (z1 mod m); ring end.
 Qed.
 
+(*
 (** ** Chinese Remainder Theorem *)
 
 Definition combinecong (m1 m2 r1 r2 : Z) :=
@@ -221,4 +222,5 @@ Proof.
     rewrite 2Z.mod_opp_mod_opp in X; exact X. }
 Qed.
 
+ *)
 End Z.
