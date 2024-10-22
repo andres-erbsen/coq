@@ -31,8 +31,13 @@ Proof. rewrite <-mod_to_Z. apply Z.mod_neg_bound. Qed.
 Notation to_Z_neg_bound := unsigned_neg_bound (only parsing).
 
 Lemma unsigned_inj m (x y : Zmod m) : to_Z x = to_Z y -> x = y.
-Proof. cbv [to_Z Private_to_Z]; destruct x, y, 1. apply f_equal, Is_true_hprop. Qed.
+Proof. cbv [to_Z Private_to_Z]; destruct x, y, 1; apply f_equal, Is_true_hprop. Defined.
 Notation to_Z_inj := unsigned_inj (only parsing).
+
+Goal forall axiom, unsigned_inj 7 (of_Z _ 9) (of_small_Z _ 2 axiom) eq_refl = eq_refl.
+Proof. intros. exact eq_refl. all : fail. Abort.
+Goal forall axiom, unsigned_inj 7 (of_small_Z _ 2 axiom) (of_Z _ 9) eq_refl = eq_refl.
+Proof. intros. exact eq_refl. all : fail. Abort.
 
 Lemma unsigned_inj_iff {m} (x y : Zmod m) : to_Z x = to_Z y <-> x = y.
 Proof. split; try apply to_Z_inj; congruence. Qed.

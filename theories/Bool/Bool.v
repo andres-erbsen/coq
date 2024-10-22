@@ -32,14 +32,24 @@ Definition Is_true (b:bool) :=
     | false => False
   end.
 
-Lemma Is_true_hprop b : IsHProp (Is_true b).
-Proof. destruct b; auto using true_hprop, false_hprop. Qed.
-
 Definition transparent_true (b : bool) : (True -> Is_true b) -> Is_true b :=
   match b with
   | true => fun _ => I
   | false => fun H => False_rect _ (H I)
   end.
+
+Definition Is_true_hprop b : IsHProp (Is_true b) :=
+  match b with
+  | true => true_hprop
+  | false => false_hprop
+  end.
+
+Goal forall axiom, transparent_true true axiom = I.
+Proof. intros. exact eq_refl. all : fail. Abort.
+
+Goal forall axiom1 axiom2,
+  Is_true_hprop true (transparent_true true axiom1) (transparent_true true axiom2) = eq_refl.
+Proof. intros. exact eq_refl. all : fail. Abort.
 
 (*******************)
 (** * Decidability *)
