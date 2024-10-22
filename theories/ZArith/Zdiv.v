@@ -736,6 +736,23 @@ Qed.
 Arguments Zdiv_eucl_extended : default implicits.
 
 Module Z.
-  Lemma mod_id_iff a b : a mod b = a <-> 0 <= a < b \/ b = 0 \/ b < a <= 0.
-  Proof. zero_or_not b; [|rewrite Z.mod_small_iff]; intuition idtac. Qed.
+Lemma mod_id_iff a b : a mod b = a <-> 0 <= a < b \/ b = 0 \/ b < a <= 0.
+Proof. zero_or_not b; [|rewrite Z.mod_small_iff]; intuition idtac. Qed.
+
+Lemma gcd_mod_l a b : Z.gcd (a mod b) b = Z.gcd a b.
+Proof.
+  case (Z.eqb_spec b 0) as [->|];
+    rewrite ?Zmod_0_r, ?Z.gcd_mod, Z.gcd_comm; trivial.
+Qed.
+
+Lemma gcd_mod_r a b : Z.gcd a (b mod a) = Z.gcd a b.
+Proof. rewrite Z.gcd_comm, Z.gcd_mod_l, Z.gcd_comm; trivial. Qed.
+
+Lemma mod_pow_l a b c : (a mod c)^b mod c = ((a ^ b) mod c).
+Proof.
+  destruct (Z.ltb_spec b 0) as [|Hb]. { rewrite !Z.pow_neg_r; trivial. }
+  destruct (Z.eqb_spec c 0) as [|Hc]. { subst. rewrite !Zmod_0_r; trivial. }
+  generalize dependent b; eapply natlike_ind; trivial; intros x Hx IH.
+  rewrite !Z.pow_succ_r, <-Z.mul_mod_idemp_r, IH, Z.mul_mod_idemp_l, Z.mul_mod_idemp_r; trivial.
+Qed.
 End Z.

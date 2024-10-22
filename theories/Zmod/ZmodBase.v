@@ -5,7 +5,6 @@ Import ListNotations.
 Require Import Zmod.ZmodDef.
 Local Open Scope Z_scope.
 Local Coercion ZmodDef.Zmod.to_Z : Zmod >-> Z.
-Local Coercion Zstar.to_Zmod : Zstar.Zstar >-> Zmod.Zmod.
 
 Local Hint Extern 0 (?x <-> ?x) => reflexivity : core.
 

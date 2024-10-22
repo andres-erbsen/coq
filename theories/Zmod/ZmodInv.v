@@ -2,7 +2,7 @@ Require Import NArith ZArith ZModOffset Lia.
 Require Import Bool.Bool Lists.List Sorting.Permutation.
 Import ListNotations.
 
-Require Import Zmod.ZmodDef Zmod.ZmodBase Zmod.ZstarBase.
+Require Import Zmod.ZmodDef Zmod.ZstarDef Zmod.ZmodBase Zmod.ZstarBase.
 Local Open Scope Z_scope.
 Local Coercion ZmodDef.Zmod.to_Z : Zmod >-> Z.
 Local Coercion Zstar.to_Zmod : Zstar.Zstar >-> Zmod.Zmod.
@@ -10,7 +10,7 @@ Local Coercion Zstar.to_Zmod : Zstar.Zstar >-> Zmod.Zmod.
 Local Hint Extern 0 (?x <-> ?x) => reflexivity : core.
 
 Module Zmod.
-Import Znumtheory ZmodDef.Zstar ZstarBase.Zstar ZmodDef.Zmod ZmodBase.Zmod.
+Import Znumtheory ZstarDef.Zstar ZstarBase.Zstar ZmodDef.Zmod ZmodBase.Zmod.
 
 Lemma mdiv_same {m} (a : Zmod m) : mdiv a a = of_Z m (Z.gcd a m).
 Proof.

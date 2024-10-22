@@ -1,8 +1,8 @@
-Require Import NArith ZArith ZModOffset Lia.
+Require Import NArith ZArith ZModOffset Lia Zdiv_facts2.
 Require Import Bool.Bool Lists.List Sorting.Permutation.
 Import ListNotations.
 
-Require Import Zmod.ZmodDef Zmod.ZmodBase.
+Require Import Zmod.ZmodDef Zmod.ZmodBase Zmod.ZstarDef.
 Local Open Scope Z_scope.
 Local Coercion ZmodDef.Zmod.to_Z : Zmod >-> Z.
 Local Coercion Zstar.to_Zmod : Zstar.Zstar >-> Zmod.Zmod.
@@ -10,7 +10,7 @@ Local Coercion Zstar.to_Zmod : Zstar.Zstar >-> Zmod.Zmod.
 Local Hint Extern 0 (?x <-> ?x) => reflexivity : core.
 
 Module Zstar.
-Import Znumtheory ZmodDef.Zmod ZmodBase.Zmod ZmodDef.Zstar.
+Import Znumtheory ZmodDef.Zmod ZmodBase.Zmod ZstarDef.Zstar.
 
 (** ** Conversions to [Zmod] *)
 
