@@ -1,4 +1,4 @@
-Require Import NArith ZArith ZModOffset Lia.
+Require Import NArith ZArith ZModOffset Zcong Lia.
 Require Import Bool.Bool Lists.List Sorting.Permutation.
 Import ListNotations.
 
@@ -417,7 +417,7 @@ Lemma signed_opp {m} x : signed (@opp m x) = Z.smodulo (-signed x) m.
 Proof. rewrite <-!smod_unsigned, to_Z_opp, Z.smod_mod, Z.smod_idemp_opp; trivial. Qed.
 
 Lemma unsigned_m1 {m : Z} : @to_Z m (opp one) = -1 mod m.
-Proof. rewrite to_Z_opp, to_Z_1. apply (Znumtheory.mod_opp_mod_opp (-1)). Qed.
+Proof. rewrite to_Z_opp, to_Z_1. apply (Z.mod_opp_mod_opp (-1)). Qed.
 
 Lemma unsigned_m1_pos {m : Z} (H : 2 <= m) : @to_Z m (opp one) = m-1.
 Proof. rewrite to_Z_opp, Z_mod_nz_opp_full; rewrite mod_to_Z, ?to_Z_1_pos; lia. Qed.
@@ -656,14 +656,14 @@ Proof.
   rewrite signed_opp; trivial.
 Qed.
 
-Lemma unsigned_inv {m} x : to_Z (@inv m x) = Znumtheory.invmod x m.
+Lemma unsigned_inv {m} x : to_Z (@inv m x) = Z.invmod x m.
 Proof. apply to_Z_of_small_Z. Qed.
 Notation to_Z_inv := unsigned_inv (only parsing).
 
 Lemma inv_0 {m} : @inv m zero = zero.
 Proof. apply to_Z_inj, to_Z_of_small_Z. Qed.
 
-Lemma unsigned_mdiv {m} x y : to_Z (@mdiv m x y) = x * Znumtheory.invmod y m mod m.
+Lemma unsigned_mdiv {m} x y : to_Z (@mdiv m x y) = x * Z.invmod y m mod m.
 Proof. cbv [mdiv]. rewrite to_Z_mul, to_Z_inv; trivial. Qed.
 Notation to_Z_mdiv := unsigned_mdiv (only parsing).
 
@@ -846,10 +846,10 @@ Lemma unsigned_pow_nonneg_r {m} x z (Hz : 0 <= z) : @to_Z m (pow x z) = x^z mod 
 Proof. rewrite Private_pow_nonneg, Private_to_Z_pow_N; f_equal; f_equal; lia. Qed.
 Notation to_Z_pow_nonneg_r := unsigned_pow_nonneg_r (only parsing).
 
-Lemma unsigned_pow_neg_r {m} x z (Hz : z < 0) : @to_Z m (pow x z) = Znumtheory.invmod (to_Z x^(-z)) m.
+Lemma unsigned_pow_neg_r {m} x z (Hz : z < 0) : @to_Z m (pow x z) = Z.invmod (to_Z x^(-z)) m.
 Proof.
   rewrite pow_neg, to_Z_inv, to_Z_pow_nonneg_r by lia.
-  rewrite Znumtheory.invmod_mod_l; f_equal; f_equal; lia.
+  rewrite Z.invmod_mod_l; f_equal; f_equal; lia.
 Qed.
 Notation to_Z_pow_neg_r := unsigned_pow_neg_r (only parsing).
 
@@ -876,7 +876,7 @@ Proof. cbv [pow]; case Z.ltb eqn:?; rewrite Private_pow_N_0_l, ?inv_0 by lia; au
 Lemma sub_eq_0 {m} a b (H : @sub m a b = zero) : a = b.
 Proof.
   apply (f_equal to_Z) in H.
-  rewrite to_Z_sub in H. eapply Znumtheory.cong_iff_0 in H.
+  rewrite to_Z_sub in H. eapply Z.cong_iff_0 in H.
   rewrite 2 mod_to_Z in *; auto using to_Z_inj.
 Qed.
 
@@ -906,9 +906,9 @@ Lemma inv_1 {m} : @inv m one = one.
 Proof.
   apply to_Z_inj. rewrite to_Z_inv, to_Z_1_cases.
   case Z.leb_spec; try case Z.eqb_spec; intros; trivial.
-  { rewrite ?Znumtheory.invmod_1_l, ?Znumtheory.invmod_0_l, ?Z.mod_small by lia; trivial. }
-  pose proof Znumtheory.invmod_mod_l 1 m.
-  rewrite Znumtheory.invmod_1_l, (Z.mod_diveq (-1)) in * by lia.
+  { rewrite ?Z.invmod_1_l, ?Z.invmod_0_l, ?Z.mod_small by lia; trivial. }
+  pose proof Z.invmod_mod_l 1 m.
+  rewrite Z.invmod_1_l, (Z.mod_diveq (-1)) in * by lia.
   assert ((1 - m * -1) = m+1) by lia. congruence.
 Qed.
 
@@ -1126,7 +1126,7 @@ Proof.
     cbn [option_map]; f_equal; apply to_Z_inj; rewrite ?to_Z_opp, ?to_Z_of_Z;
     assert (Z.of_nat (1 + _) = - (Z.of_nat i - (Z.abs m)/2))
       as -> by (Z.to_euclidean_division_equations; lia);
-    repeat rewrite ?Znumtheory.mod_opp_mod_opp,
+    repeat rewrite ?Z.mod_opp_mod_opp,
       ?(Z.mod_diveq (-1)), ?(Z.mod_diveq (0)) (* WHY repeat matters?*)
       by (Z.to_euclidean_division_equations; lia);
       (Z.to_euclidean_division_equations; lia).

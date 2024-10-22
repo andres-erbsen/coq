@@ -1,4 +1,4 @@
-Require Import NArith ZArith ZModOffset Lia.
+Require Import NArith ZArith ZModOffset Zcong Lia.
 Require Import Bool.Bool Lists.List Sorting.Permutation.
 Import ListNotations.
 
@@ -15,7 +15,7 @@ Import Znumtheory ZstarDef.Zstar ZstarBase.Zstar ZmodDef.Zmod ZmodBase.Zmod.
 Lemma mdiv_same {m} (a : Zmod m) : mdiv a a = of_Z m (Z.gcd a m).
 Proof.
   rewrite <-mul_inv_l. apply to_Z_inj. rewrite to_Z_mul, to_Z_inv,
-    to_Z_of_Z, invmod_ok; trivial.
+    to_Z_of_Z, Z.invmod_ok; trivial.
 Qed.
 
 Lemma in_invertibles m (x : Zmod m) : List.In x (invertibles m) <-> Z.gcd x m = 1.
@@ -90,7 +90,7 @@ Qed.
 Lemma inv_inv_prime {m} (x : Zmod m) (Hm : prime m): inv (inv x) = x.
 Proof.
   case (eqb_spec x zero) as [|Hx]; subst.
-  { apply to_Z_inj. rewrite to_Z_inv, invmod_0_l; trivial. }
+  { apply to_Z_inj. rewrite to_Z_inv, Z.invmod_0_l; trivial. }
   pose proof to_Z_nz x ltac:(trivial); pose proof to_Z_range x.
   pose proof prime_ge_2 _ Hm.
   apply inv_inv, Zgcd_1_rel_prime, rel_prime_le_prime; trivial; lia.

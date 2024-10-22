@@ -1,4 +1,4 @@
-Require Import NArith ZArith ZModOffset Lia.
+Require Import NArith ZArith ZModOffset Zcong Lia.
 Require Import Bool.Bool Lists.List Sorting.Permutation.
 Import ListNotations.
 
@@ -156,7 +156,7 @@ Proof. apply of_Z_div_small; trivial. Qed.
 Lemma of_Z_umod {n} (x y : Z) (Hx : 0 <= x < 2^n) (Hy : 0 <= y < 2^n) :
   bits.of_Z n (x mod y) = umod (of_Z _ x) (of_Z _ y).
 Proof. rewrite of_Z_umod_small; trivial. Qed.
-Lemma to_Z_mdiv {n} (x y : bits n) : to_Z (mdiv x y) = x * Znumtheory.invmod y (2^n) mod 2^n.
+Lemma to_Z_mdiv {n} (x y : bits n) : to_Z (mdiv x y) = x * Z.invmod y (2^n) mod 2^n.
 Proof. rewrite to_Z_mdiv; trivial. Qed.
 Lemma to_Z_pow_nonneg_r {n} (x : bits n) z (Hz : 0 <= z) : to_Z (pow x z) = x^z mod 2^n.
 Proof. rewrite to_Z_pow_nonneg_r; trivial. Qed.
@@ -188,7 +188,7 @@ Proof.
   case (Z.eqb_spec n 0) as [->|]; [apply hprop_Zmod_1|].
   pose proof Z.pow_succ_r 2 (n-1) ltac:(lia) as H;
     replace (Z.succ (n-1)) with n in H by lia.
-  apply squot_overflow; rewrite ?Pos2Z.inj_shiftl_1; Z.to_euclidean_division_equations; lia.
+  apply squot_overflow; Z.to_euclidean_division_equations; lia.
 Qed.
 
 Lemma signed_squot_small {n} (x y : bits n) (Hn : 0 <= n) (Hy : signed y <> 0) :
@@ -282,7 +282,7 @@ End Z.
 
 Lemma to_Z_not {n} (x : bits n) : to_Z (not x) = Z.ldiff (Z.ones n) x.
 Proof.
-  cbv [not]; rewrite to_Z_of_Z, ?Pos2Z.inj_shiftl_1; apply Z.bits_inj'; intros i Hi.
+  cbv [not]; rewrite to_Z_of_Z; apply Z.bits_inj'; intros i Hi.
   case (Z.leb_spec 0 n) as []; case (Z.ltb_spec i n) as [];
   repeat rewrite ?Z.pow_neg_r (* does not work...*) ,
     ?Z.mod_pow2_bits_low, ?Z.mod_pow2_bits_high, ?Z.lnot_spec,

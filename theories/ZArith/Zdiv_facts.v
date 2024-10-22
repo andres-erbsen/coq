@@ -41,7 +41,7 @@ Qed.
 Lemma mod_mod_opp a b : (a mod - b) mod b = a mod b.
 Proof.
   replace a with (--a) at 1 by apply Z.opp_involutive.
-  rewrite Zmod_opp_opp, mod_opp_mod_opp; trivial.
+  rewrite Zmod_opp_opp, Z.mod_opp_mod_opp; trivial.
 Qed.
 
 Lemma mod_mod_opp' a b : (a mod b) mod - b = a mod - b.

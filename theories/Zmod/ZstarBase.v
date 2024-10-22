@@ -1,4 +1,4 @@
-Require Import NArith ZArith ZModOffset Lia Zdiv_facts2.
+Require Import NArith ZArith ZModOffset Zcong Lia Zdiv_facts2.
 Require Import Bool.Bool Lists.List Sorting.Permutation.
 Import ListNotations.
 
@@ -229,7 +229,7 @@ Local Notation "∏ xs" := (List.fold_right mul one xs) (at level 40).
 Lemma to_Zmod_inv {m} x : to_Zmod (@inv m x) = Zmod.inv x.
 Proof.
   cbv [inv]. rewrite to_Zmod_of_Zmod; trivial.
-  rewrite to_Z_inv; auto using coprime_invmod, to_Zmod_range.
+  rewrite to_Z_inv; auto using Z.coprime_invmod, to_Zmod_range.
 Qed.
 
 Lemma not_of_Zmod_inv (m := 6) (x := Zmod.of_Z _ 4) : of_Zmod (@Zmod.inv m x) <> inv (of_Zmod x).
@@ -247,7 +247,7 @@ Proof. rewrite mul_comm, mul_inv_l; trivial. Qed.
 Lemma div_same {m} (a : Zstar m) : div a a = one.
 Proof.
   apply to_Zmod_inj, to_Z_inj. pose proof coprime_to_Zmod a.
-  rewrite to_Zmod_div, to_Z_mdiv, Z.mul_comm, invmod_coprime', to_Zmod_1, to_Z_1; trivial.
+  rewrite to_Zmod_div, to_Z_mdiv, Z.mul_comm, Z.invmod_coprime', to_Zmod_1, to_Z_1; trivial.
 Qed.
 
 Lemma div_mul_l {m} (a b c : Zstar m) : div (mul a b) c = mul a (div b c).
@@ -353,7 +353,7 @@ Proof.
   case (ltac:(lia):z = 0 \/ z < 0 \/ 0 < z) as [->|[]].
   { rewrite pow_0_r; apply Zmod.gcd_1_m. }
   all : rewrite ?to_Z_pow_nonneg_r, ?to_Z_pow_neg_r by lia.
-  { apply coprime_invmod, Z.coprime_pow_l; lia. }
+  { apply Z.coprime_invmod, Z.coprime_pow_l; lia. }
   { rewrite Z.gcd_mod_l, Z.coprime_pow_l; try lia. }
 Qed.
 
@@ -425,7 +425,7 @@ Proof.
   case (Z.eqb_spec m 0) as [->|].
   2:rewrite inv_mul, !mul_assoc, mul_inv_same_r, mul_1_l by lia; trivial.
   apply to_Zmod_inj, to_Z_inj.
-  repeat rewrite ?to_Zmod_inv, ?to_Zmod_mul, ?to_Z_mul, ?to_Z_inv, ?to_Zmod_pow, ?to_Z_pow, ?Zmod_0_r, ?invmod_0_r.
+  repeat rewrite ?to_Zmod_inv, ?to_Zmod_mul, ?to_Z_mul, ?to_Z_inv, ?to_Zmod_pow, ?to_Z_pow, ?Zmod_0_r, ?Z.invmod_0_r.
   rewrite Z.sgn_mul.
   assert (to_Z x = 1 \/ to_Z x = -1) as [->| ->] by (rewrite Z.gcd_0_r in H; lia).
   all : cbn [Z.sgn]; lia.

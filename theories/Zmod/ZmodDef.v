@@ -1,4 +1,4 @@
-Require Import NArith ZArith ZModOffset Lia.
+Require Import NArith ZArith ZModOffset Zcong Lia.
 Require Import Coq.Bool.Bool Coq.Lists.List.
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -93,8 +93,8 @@ Definition squot {m} (x y : Zmod m) :=
 Definition srem {m} (x y : Zmod m) := of_Z m (Z.rem (signed x) (signed y)).
 
 Definition inv {m} (x : Zmod m) : Zmod m.
-  refine (of_small_Z m (Znumtheory.invmod (to_Z x) m) (fun _ => _)).
-  apply Znumtheory.mod_invmod.
+  refine (of_small_Z m (Z.invmod (to_Z x) m) (fun _ => _)).
+  apply Z.mod_invmod.
 Defined.
 
 Definition mdiv {m} (x y : Zmod m) : Zmod m := mul x (inv y).
